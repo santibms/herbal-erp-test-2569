@@ -1,4 +1,4 @@
-/* ระบบบันทึกผลการทดสอบ Herbal ERP · โรงงานผลิตยาสมุนไพรเรณูนคร (14 ต.ค. 2569) · หน้าเว็บ
+/* ระบบบันทึกผลการทดสอบ Herbal ERP (UAT) · หน้าเว็บ · ใช้ได้กับหลายโรงงาน (ผู้ทดสอบระบุโรงงาน / บริษัทของตัวเอง)
  * ข้อมูลข้อทดสอบมาจาก cases.js (สร้างจาก tools/build_web_app.py) + ข้อที่แอดมินเพิ่มในแท็บ "ข้อทดสอบ" ของ Google Sheet
  * ผลการทดสอบส่งไป Google Apps Script (config.js) ทุกครั้งที่เลือกผลหรือพิมพ์ ถ้าเน็ตหลุดจะเก็บไว้ในเครื่องแล้วส่งให้เองภายหลัง
  */
@@ -10,7 +10,6 @@
   const LABEL = { pass: 'ผ่าน', fail: 'ไม่ผ่าน', block: 'ติดปัญหา (ทดสอบต่อไม่ได้)' };
   const SHORT = { pass: 'ผ่าน', fail: 'ไม่ผ่าน', block: 'ติดปัญหา' };
   const PRODUCT = 'Herbal ERP';
-  const DOC_TITLE = 'ทดสอบระบบ Herbal ERP — โรงงานผลิตยาสมุนไพรเรณูนคร';
   // วันที่ทดสอบจริง (ช่องวันที่ทดสอบ) และรอบทดสอบ (ผู้ดูแลเปิด/ปิดให้ผู้ทดสอบเห็น) จาก cases.js
   // รอบ = ข้อความที่อยู่ในช่วงเวลาของข้อ เช่น '14 ต.ค. 2569' (โจทย์หลักใน Zoom) / 'ทดสอบต่อเอง 16–21 ต.ค. 2569'
   const DAYS = (DATA.days && DATA.days.length) ? DATA.days.slice() : ['14 ต.ค. 2569'];
@@ -62,7 +61,7 @@
   // (วัดแล้ว: โค้ดของเราทำงานเสร็จในไม่กี่มิลลิวินาที ความช้าอยู่ที่ระบบส่งคำตอบ script.googleusercontent.com ของ Google)
   // คำขอที่ส่งซ้ำได้อย่างปลอดภัย: ถ้ายังไม่ตอบภายในเวลาที่กำหนด ส่งคำขอสำรองคู่ขนาน แล้วใช้คำตอบที่มาถึงก่อน
   // (สมัครสมาชิก และแนบภาพ ไม่ส่งซ้ำ เพราะจะได้บัญชีหรือไฟล์ภาพซ้ำ)
-  const HEDGE = { login: 1, me: 1, save: 1, dashboard: 1, logout: 1, setCurrent: 1, setOpenDays: 1, diag: 1, answer: 1 };
+  const HEDGE = { login: 1, me: 1, save: 1, dashboard: 1, logout: 1, setCurrent: 1, setOpenDays: 1, diag: 1, answer: 1, setProfile: 1 };
   const HEDGE_AT = [0, 7000, 16000];            // เวลาที่เริ่มคำขอที่ 1, 2, 3 (มิลลิวินาที)
   const MAX_TRY = 4;                            // รวมการส่งใหม่ทันทีเมื่อคำขอก่อนหน้าล้มเหลว
   const TIMEOUT = { upload: 120000, register: 60000 };
@@ -214,18 +213,18 @@
   $('regForm').onsubmit = e => {
     e.preventDefault();
     const v = id => $(id).value.trim();
-    const full = v('rn'), org = v('ro'), u = v('ru').toLowerCase(), inv = v('ri'), p = $('rp').value, p2 = $('rp2').value;
+    const full = v('rn'), factory = v('rf'), org = v('ro'), u = v('ru').toLowerCase(), inv = v('ri'), p = $('rp').value, p2 = $('rp2').value;
     const admin = $('radm').checked, adminCode = v('rac');
     const err = m => { $('rerr').textContent = m; };
-    if (!full || !u || !p || !inv) return err('กรุณากรอกช่องที่มีเครื่องหมาย * ให้ครบ');
+    if (!full || !factory || !u || !p || !inv) return err('กรุณากรอกช่องที่มีเครื่องหมาย * ให้ครบ');
     if (!/^[a-z0-9._-]{3,40}$/.test(u)) return err('ชื่อผู้ใช้ใช้ได้เฉพาะ a-z 0-9 . _ - อย่างน้อย 3 ตัว');
     if (p.length < 6) return err('รหัสผ่านต้องมีอย่างน้อย 6 ตัว');
     if (p !== p2) return err('รหัสผ่านทั้งสองช่องไม่ตรงกัน');
     if (admin && !adminCode) return err('กรุณากรอกรหัสผู้ดูแล');
     busy($('regBtn'), 'กำลังสมัคร…', async () => {
       try {
-        const j = await call('register', { full, org, username: u, invite: inv, password: p, admin, adminCode });
-        ['rn', 'ro', 'ru', 'ri', 'rp', 'rp2', 'rac'].forEach(id => { $(id).value = ''; });
+        const j = await call('register', { full, factory, org, username: u, invite: inv, password: p, admin, adminCode });
+        ['rn', 'rf', 'ro', 'ru', 'ri', 'rp', 'rp2', 'rac'].forEach(id => { $(id).value = ''; });
         $('radm').checked = false; $('radmBox').hidden = true;
         start(j, true);
       } catch (e2) { err(errText(e2)); }
@@ -243,7 +242,7 @@
   $('logout').onclick = () => {
     if (outbox.length && !confirm(`ยังมีผลที่ยังไม่ได้ส่งเข้าระบบ ${outbox.length} ข้อ\nถ้าออกจากระบบตอนนี้ ผลจะยังเก็บไว้ในเครื่องนี้ และส่งให้เมื่อเข้าระบบอีกครั้ง\n\nออกจากระบบ?`)) return;
     if (session) call('logout', { token: session.token }).catch(() => {});
-    session = null; store.del(KEY.session); closeSide(); hideDash();
+    session = null; store.del(KEY.session); closeSide(); hideDash(); $('profile').hidden = true; $('toast').hidden = true;
     showAuth('login');
   };
 
@@ -257,7 +256,7 @@
     buildList(state.serverCases);
     if (idxOf(state.code) < 0) state.code = LIST[0].code;
     $('auth').hidden = true; $('app').hidden = false;
-    $('uname').textContent = u.full; $('whoName').textContent = u.full; $('whoOrg').textContent = u.org || '';
+    $('uname').textContent = u.full; showWho(u);
     $('av').textContent = (u.full.replace(/^(นาย|นางสาว|นาง|ดร\.|ผศ\.|รศ\.)\s*/, '').trim().charAt(0) || '?');
     showVers();
     $('dashBtn').hidden = u.role !== 'admin';
@@ -265,8 +264,9 @@
     render();
     try {
       const j = pre || await call('me', { token: session.token });
-      session.user = j.user; store.set(KEY.session, session);
+      session.user = j.user; store.set(KEY.session, session); showWho(j.user);
       $('dashBtn').hidden = j.user.role !== 'admin';
+      if (!j.user.factory) openProfile(true);   // บัญชีเดิมที่ยังไม่มีชื่อโรงงาน: ขอให้กรอกครั้งเดียว
       state.serverCases = j.cases || null;
       myAnswers = {}; (j.answers || []).forEach(a => { myAnswers[a.code] = a; });
       if (j.current) { if (j.current.days && j.current.days.length) state.current.days = j.current.days; if (j.current.ver) state.current.ver = j.current.ver; showVers(); }
@@ -286,6 +286,34 @@
     }
     flush();
   }
+  function showWho(u) {
+    $('whoName').textContent = u.full; $('whoFactory').textContent = u.factory || ''; $('whoOrg').textContent = u.org || '';
+  }
+  // ข้อมูลผู้ทดสอบ: โรงงาน / บริษัท (บังคับ) และหน่วยงาน · required = ยังไม่มีชื่อโรงงาน (ปิดไม่ได้ ต้องกรอกหรือออกจากระบบ)
+  let profRequired = false;
+  function openProfile(required) {
+    const u = session.user; profRequired = !!required;
+    $('pf').value = u.factory || ''; $('po').value = u.org || ''; $('perr').textContent = '';
+    $('profLead').textContent = required ? 'กรุณาระบุโรงงาน / บริษัทของท่านก่อนเริ่มบันทึกผล (กรอกครั้งเดียว ใช้ในหัวเอกสารสรุปผลการทดสอบ)'
+      : 'แก้ไขโรงงาน / บริษัท และหน่วยงานของท่าน';
+    $('profCancel').textContent = required ? 'ออกจากระบบ' : 'ยกเลิก';
+    $('profile').hidden = false;
+    setTimeout(() => { if (!('ontouchstart' in window)) $(u.factory ? 'po' : 'pf').focus(); }, 60);
+  }
+  $('profBtn').onclick = () => openProfile(false);
+  $('profCancel').onclick = () => { if (profRequired) { $('profile').hidden = true; $('logout').click(); } else $('profile').hidden = true; };
+  $('profForm').onsubmit = e => {
+    e.preventDefault();
+    const factory = $('pf').value.trim(), org = $('po').value.trim();
+    if (!factory) { $('perr').textContent = 'กรุณากรอกชื่อโรงงาน / บริษัท'; return; }
+    busy($('profSave'), 'กำลังบันทึก…', async () => {
+      try {
+        const j = await call('setProfile', { token: session.token, factory, org });
+        session.user = j.user; store.set(KEY.session, session); showWho(j.user);
+        $('profile').hidden = true; profRequired = false; toast('บันทึกข้อมูลผู้ทดสอบแล้ว');
+      } catch (er) { if (er.code === 'AUTH') { $('profile').hidden = true; return expire(er.message); } $('perr').textContent = errText(er); }
+    });
+  };
   function notice(msg) { $('notice').textContent = msg; $('notice').hidden = false; }
   function nextTodo() { const i = LIST.findIndex(c => !(state.res[c.code] || {}).v); return i < 0 ? null : LIST[i]; }
   function showWelcome(fresh, loading) {
@@ -603,7 +631,16 @@
     d.testers.forEach(t => { names[t.username] = t.full; });
     const results = d.results.filter(r => codes[r.code]);
     const has = {}; results.forEach(r => { if (r.v) has[r.user] = true; });
-    const people = d.testers.filter(t => t.role === 'tester' || has[t.username]);
+    let people = d.testers.filter(t => t.role === 'tester' || has[t.username]);
+    // เลือกดูทีละโรงงาน (แสดงเมื่อมีผู้ทดสอบมากกว่า 1 โรงงาน)
+    const facs = people.map(t => t.factory || '').filter((g, i, a) => a.indexOf(g) === i).sort();
+    const fsel = $('dFactory'), fkeep = fsel.value, NONE = '__none__';
+    fsel.hidden = facs.length < 2;
+    fsel.innerHTML = '<option value="">ทุกโรงงาน / บริษัท</option>' + facs.map(f => `<option value="${esc(f || NONE)}">${esc(f || '(ยังไม่ระบุโรงงาน)')} (${people.filter(t => (t.factory || '') === f).length} ท่าน)</option>`).join('');
+    fsel.value = facs.some(f => (f || NONE) === fkeep) ? fkeep : '';
+    const fsv = fsel.hidden ? '' : fsel.value;
+    if (fsv) people = people.filter(t => (t.factory || NONE) === fsv);
+    const facOf = {}; d.testers.forEach(t => { facOf[t.username] = t.factory || ''; });
     const R = {}; results.forEach(r => { (R[r.user] = R[r.user] || {})[r.code] = r; });
     const cnt = (list, v) => list.filter(r => r.v === v).length;
     const all = results.filter(r => r.v && people.some(p => p.username === r.user));
@@ -626,7 +663,7 @@
     $('dTesters').innerHTML = people.length ? `<table><thead><tr><th class="n">ลำดับ</th><th>ผู้ทดสอบ</th><th>ความคืบหน้า</th><th class="n">ทำแล้ว</th><th class="n">ผ่าน</th><th class="n">ไม่ผ่าน</th><th class="n">ติดปัญหา</th><th>บันทึกล่าสุด</th></tr></thead><tbody>`
       + people.map((t, ti) => {
         const mine = Object.values(R[t.username] || {}).filter(r => r.v), last = Math.max(0, ...Object.values(R[t.username] || {}).map(r => r.t));
-        return `<tr><td class="n">${ti + 1}</td><td><b>${esc(t.full)}</b>${t.role === 'admin' ? ' <span class="muted">(ผู้ดูแล)</span>' : ''}<br><span class="muted">${esc(t.org || t.username)}</span></td>
+        return `<tr><td class="n">${ti + 1}</td><td><b>${esc(t.full)}</b>${t.role === 'admin' ? ' <span class="muted">(ผู้ดูแล)</span>' : ''}<br><span class="muted">${esc([t.factory, t.org].filter(Boolean).join(' · ') || t.username)}</span></td>
           <td>${bar(cnt(mine, 'pass'), cnt(mine, 'fail'), cnt(mine, 'block'), cases.length)}</td><td class="n">${mine.length}/${cases.length}</td>
           <td class="n">${cnt(mine, 'pass')}</td><td class="n">${cnt(mine, 'fail')}</td><td class="n">${cnt(mine, 'block')}</td><td>${last ? fmtDT(last) : '-'}</td></tr>`;
       }).join('') + '</tbody></table>' : '<span class="muted">ยังไม่มีผู้ทดสอบสมัครสมาชิก</span>';
@@ -667,7 +704,7 @@
     $('dIssues').innerHTML = issues.length ? `<table><thead><tr><th class="n">ลำดับ</th><th>เวลา</th><th>ผู้ทดสอบ</th><th>ข้อ</th><th>โจทย์</th><th>ผล</th><th>ผลที่ได้จริง / ปัญหาที่พบ</th><th>วันที่ / รุ่น</th><th>ภาพ</th></tr></thead><tbody>`
       + (isel.value ? [isel.value] : isys).map(g => {
         const rs = issues.filter(r => codes[r.code].sysName === g && stOk(r));
-        return !rs.length ? '' : `<tr class="igrp"><td colspan="9">${esc(g)} · ${rs.length} รายการ</td></tr>` + rs.map(r => `<tr><td class="n">${++ino}</td><td>${fmtDT(r.t)}</td><td>${esc(names[r.user] || r.user)}</td><td><b>${esc(r.code)}</b></td><td>${esc(codes[r.code].task)}</td>
+        return !rs.length ? '' : `<tr class="igrp"><td colspan="9">${esc(g)} · ${rs.length} รายการ</td></tr>` + rs.map(r => `<tr><td class="n">${++ino}</td><td>${fmtDT(r.t)}</td><td>${esc(names[r.user] || r.user)}${facs.length > 1 && facOf[r.user] ? `<br><span class="muted">${esc(facOf[r.user])}</span>` : ''}</td><td><b>${esc(r.code)}</b></td><td>${esc(codes[r.code].task)}</td>
           <td><span class="pill ${r.v}">${SHORT[r.v]}</span>${stPill(r)}</td><td>${esc(r.note) || '<span class="muted">-</span>'}${ansCell(r)}</td><td>${esc(r.day)}<br>${esc(r.ver)}</td>
           <td>${r.img.map((u, k) => `<a href="${esc(u)}" target="_blank" rel="noopener">${k + 1}</a>`).join(' ') || '-'}</td></tr>`).join('');
       }).join('') + '</tbody></table>'
@@ -749,6 +786,7 @@
   }
   $('dVerSave').onclick = saveVer;
   $('dSysF').onchange = () => { if (dash) renderDash(); };
+  $('dFactory').onchange = () => { if (dash) renderDash(); };
   $('dIssueSys').onchange = () => { if (dash) renderDash(); };
   $('dIssueSt').onchange = () => { if (dash) renderDash(); };
   // คำชี้แจงของผู้ดูแลต่อข้อที่ไม่ผ่าน/ติดปัญหา (ผู้ทดสอบอาจไม่ทราบวิธีดูข้อมูลที่ถูกต้อง)
@@ -793,7 +831,8 @@
   function buildPrint(mode, who) {
     who = who || { u: session.user, res: state.res, list: LIST, shots: localShots, answers: myAnswers, sys: $('printSys').value };
     const u = who.u, RES = who.res, ANS = who.answers || {}, PL = who.sys ? who.list.filter(c => c.sysName === who.sys) : who.list;
-    const hd = s => `<div class="p-hd"><span>เอกสารประกอบการ${DOC_TITLE} · ${esc(s)}</span><span>ผู้ทดสอบ: ${esc(u.full)}</span></div>`;
+    const fac = (u.factory || '').trim();
+    const hd = s => `<div class="p-hd"><span>เอกสารประกอบการทดสอบระบบ ${PRODUCT}${fac ? ' · ' + esc(fac) : ''} · ${esc(s)}</span><span>ผู้ทดสอบ: ${esc(u.full)}</span></div>`;
     const mark = (r, v) => `<span class="mark">${r.v === v ? '☑' : '☐'} ${LABEL[v]}</span>`;
     const row = (k, html) => `<tr><th class="l">${k}</th><td>${html}</td></tr>`;
     const blk = (cap, inner) => `<div class="blk"><div class="cap">${cap}</div>${inner}</div>`;
@@ -833,8 +872,9 @@
       return `<tr><td>${esc(g)}</td><td class="n">${items.length}</td><td class="n">${k('pass')}</td><td class="n">${k('fail')}</td><td class="n">${k('block')}</td><td class="n">${k('todo')}</td></tr>`;
     }).join('');
     const summary = `<div class="p-page p">${hd(who.sys || 'สรุปผล')}
-      <div class="p-title">สรุปผลการทดสอบระบบ ${PRODUCT} — โรงงานผลิตยาสมุนไพรเรณูนคร${who.sys ? ' · ' + esc(who.sys) : ''}</div>
-      <table><tr><th class="l">ผู้ทดสอบ</th><td>${esc(u.full)}${u.org ? ' · ' + esc(u.org) : ''}</td></tr>
+      <div class="p-title">สรุปผลการทดสอบระบบ ${PRODUCT}${fac ? ' — ' + esc(fac) : ''}${who.sys ? ' · ' + esc(who.sys) : ''}</div>
+      <table><tr><th class="l">โรงงาน / บริษัท</th><td>${esc(fac) || '-'}</td></tr>
+        <tr><th class="l">ผู้ทดสอบ</th><td>${esc(u.full)}${u.org ? ' · ' + esc(u.org) : ''}</td></tr>
         <tr><th class="l">ระบบที่พิมพ์</th><td>${who.sys ? esc(who.sys) : 'ทุกระบบ'}</td></tr>
         <tr><th class="l">พิมพ์เมื่อ</th><td>${esc(new Date().toLocaleString('th-TH', { dateStyle: 'long', timeStyle: 'short' }))} น.</td></tr></table>
       <table><thead><tr><th>ระบบ</th><th class="n">จำนวนข้อ</th><th class="n">ผ่าน</th><th class="n">ไม่ผ่าน</th><th class="n">ติดปัญหา</th><th class="n">ยังไม่ทดสอบ</th></tr></thead>
@@ -852,7 +892,7 @@
   async function doPrint(mode, who) {
     who = buildPrint(mode, who);
     const title = document.title;   // ชื่อไฟล์ PDF ตามผู้ทดสอบและระบบ
-    document.title = (mode === 'full' ? 'ผลการทดสอบทั้งเล่ม-' : 'สรุปผลการทดสอบ-') + who.u.full + (who.sys ? '-' + who.sys : '');
+    document.title = (mode === 'full' ? 'ผลการทดสอบทั้งเล่ม-' : 'สรุปผลการทดสอบ-') + (who.u.factory ? who.u.factory + '-' : '') + who.u.full + (who.sys ? '-' + who.sys : '');
     window.addEventListener('afterprint', function back() { document.title = title; window.removeEventListener('afterprint', back); });
     const imgs = [...$('print-area').querySelectorAll('img')];
     if (imgs.length) {
@@ -868,10 +908,11 @@
 
   // ======================================================================= สีธีม
   const THEMES = [['', 'ไม่มีสี (โทนเทา)', '#4b5563'], ['teal', 'เขียวน้ำทะเล', '#0f766e'], ['navy', 'น้ำเงิน', '#1f4e8c'],
-                  ['green', 'เขียว', '#2e7d4f'], ['plum', 'ม่วง', '#6b4f8a'], ['bronze', 'น้ำตาลทอง', '#8a6a3d']];
-  function setTheme(t) {
+                  ['green', 'เขียว', '#2e7d4f'], ['plum', 'ม่วง', '#6b4f8a'], ['bronze', 'น้ำตาลทอง', '#8a6a3d'], ['pink', 'ชมพู', '#b0457a']];
+  const THEME_KEY = 'renu-theme-pick';   // เก็บเฉพาะสีที่ผู้ใช้เลือกเอง (ไม่เลือก = ใช้ค่าเริ่มต้นใน index.html)
+  function setTheme(t, picked) {
     if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
-    store.set('renu-theme', t || '');
+    if (picked) store.set(THEME_KEY, t || '');
     const th = THEMES.find(x => x[0] === (t || '')) || THEMES[0];
     $('themeColor').setAttribute('content', th[2]);
     paintThemes();
@@ -880,11 +921,11 @@
     const curT = document.documentElement.dataset.theme || '';
     $('themeList').innerHTML = THEMES.map(([k, n, c]) => `<button class="sw" data-t="${k}" aria-pressed="${k === curT}"><i style="background:${c}"></i>${n}</button>`).join('');
     $('authTheme').innerHTML = 'สีธีม: ' + THEMES.map(([k, n, c]) => `<button class="dot2" data-t="${k}" title="${n}" aria-label="สีธีม ${n}" aria-pressed="${k === curT}" style="background:${c}"></button>`).join('');
-    document.querySelectorAll('#themeList .sw, #authTheme .dot2').forEach(b => b.onclick = e => { e.stopPropagation(); setTheme(b.dataset.t); });
+    document.querySelectorAll('#themeList .sw, #authTheme .dot2').forEach(b => b.onclick = e => { e.stopPropagation(); setTheme(b.dataset.t, true); });
   }
   $('themeBtn').onclick = e => { e.stopPropagation(); const pop = $('themePop'); pop.hidden = !pop.hidden; $('themeBtn').setAttribute('aria-expanded', String(!pop.hidden)); };
   document.addEventListener('click', e => { if (!$('themePop').hidden && !e.target.closest('.theme')) { $('themePop').hidden = true; $('themeBtn').setAttribute('aria-expanded', 'false'); } });
-  setTheme(store.get('renu-theme', 'green'));   // ค่าเริ่มต้นสีเขียว (สมุนไพร)
+  setTheme(store.get(THEME_KEY, window.SA_THEME_DEFAULT || ''));
 
   // ======================================================================= เริ่มต้น
   if (session && session.token && session.user) enterApp(false); else showAuth('login');

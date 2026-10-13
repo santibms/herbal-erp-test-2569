@@ -1,4 +1,4 @@
-# สร้างข้อมูลของระบบบันทึกผลการทดสอบ Herbal ERP โรงงานผลิตยาสมุนไพรเรณูนคร (14 ต.ค. 2569)
+# สร้างข้อมูลของระบบบันทึกผลการทดสอบ Herbal ERP (UAT) · ข้อทดสอบชุดปัจจุบัน: data/cases-renu.json
 #   อ่าน   data/cases-renu.json      ข้อทดสอบ (รูปแบบเดียวกับ cases.js ของระบบเดิม: รายการข้อ หรือ {"cases": [...]})
 #          .local-settings.json      รหัสเชิญ (ไม่เผยแพร่) เช่น {"invite": "..."}
 #   สร้าง  web/cases.js              ข้อทดสอบทั้งหมดสำหรับหน้าเว็บ
@@ -35,7 +35,7 @@ SYSTEMS = [
 TYPES = ('Positive', 'Negative', 'E2E')
 TYPE_NOTE = {'Positive': 'ใช้งานปกติต้องทำได้', 'Negative': 'ระบบต้องป้องกันหรือแจ้งเตือน', 'E2E': 'ทำต่อเนื่องทั้งวงจร'}
 # ข้อความที่ห้ามอยู่ในไฟล์ที่เผยแพร่ (เขียนแยกส่วน เพื่อไม่ให้ไฟล์นี้เองมีข้อความนั้น)
-FORBIDDEN = ['bms' 'cloud', 'ua' 't2', '@renu' 'hospital', 'herbal-erp-' 'test']
+FORBIDDEN = ['bms' 'cloud', 'ua' 't2', '@renu' 'hospital', 'herbal-erp-' 'test-uat']
 
 PLACEHOLDER = [
     {'sys': 'PUR', 'code': 'PUR-01', 'task': 'ตัวอย่าง · สร้างใบขอซื้อวัตถุดิบสมุนไพร (รอไฟล์ข้อทดสอบจริง)', 'type': 'Positive',
@@ -242,10 +242,12 @@ def main():
     rows = [[c['code'], c['sysName'], c['type'], c['task'], c['slot'], c['menu'], '\n'.join(c['steps']),
              '' if c['data'] == '-' else c['data'], c['expect']] for c in out]
     names = [s['n'] for s in systems]
-    build = hashlib.sha1(json.dumps([rows, names, rounds], ensure_ascii=False).encode('utf-8')).hexdigest()[:12]
+    # เลขรุ่น = ข้อทดสอบ + โค้ดหลังบ้าน + โค้ดหน้าเว็บ: เปลี่ยนเมื่อใด หลังบ้านเรียก setup ใหม่ 1 ครั้ง (เติมคอลัมน์/แท็บใหม่) และเบราว์เซอร์โหลดไฟล์ใหม่
+    code = GS_TEMPLATE.read_text(encoding='utf-8') + (WEB / 'app.js').read_text(encoding='utf-8')
+    build = hashlib.sha1(json.dumps([rows, names, rounds, code], ensure_ascii=False).encode('utf-8')).hexdigest()[:12]
     data = {'built': datetime.now().strftime('%Y-%m-%d %H:%M'), 'build': build,
             'source': 'data/cases-renu.json' if meta is not None else 'placeholder',
-            'title': 'ทดสอบระบบ Herbal ERP — โรงงานผลิตยาสมุนไพรเรณูนคร', 'date': DAY, 'rounds': rounds, 'days': days,
+            'title': 'ทดสอบระบบ Herbal ERP', 'date': DAY, 'rounds': rounds, 'days': days,
             'systems': systems, 'cases': out, 'extraImg': (meta or {}).get('extraImg', {})}
     js = ('// สร้างจาก tools/build_web_app.py ห้ามแก้ไฟล์นี้โดยตรง\nwindow.SA_DATA = '
           + json.dumps(data, ensure_ascii=False, indent=0) + ';\n')

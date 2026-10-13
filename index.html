@@ -5,10 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <meta name="color-scheme" content="light">
-<meta name="theme-color" content="#2e7d4f" id="themeColor">
-<script>document.documentElement.dataset.theme = 'green'; try { var t = localStorage.getItem('renu-theme'); if (t != null) { t = JSON.parse(t); if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; } } catch (e) {}</script>
-<title>ระบบบันทึกผลการทดสอบ · Herbal ERP โรงงานเรณูนคร</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%232e7d4f'/%3E%3Cpath d='M6 18h12M8 15v-3M11 15V8M14 15v-5M17 15V6' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#b0457a" id="themeColor">
+<script>
+  // สีธีมเริ่มต้น แก้ที่นี่ที่เดียว: '' (โทนเทา) / 'teal' / 'navy' / 'green' / 'plum' / 'bronze' / 'pink'
+  // ผู้ใช้ที่เลือกสีเองในเครื่องจะใช้สีที่เลือกไว้ · โลโก้ Herbal ERP ใช้สีเขียวของตัวเองทุกธีม
+  window.SA_THEME_DEFAULT = 'pink';
+  (function () { var t = window.SA_THEME_DEFAULT; try { var v = localStorage.getItem('renu-theme-pick'); if (v != null) t = JSON.parse(v); } catch (e) {} if (t) document.documentElement.dataset.theme = t; })();
+</script>
+<title>ระบบบันทึกผลการทดสอบ · Herbal ERP</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2334d399'/%3E%3Cstop offset='1' stop-color='%2314b8a6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='0' y='3' width='29' height='29' rx='8' fill='url(%23g)'/%3E%3Cg transform='translate(6.5 9.5) scale(.68)' fill='none' stroke='%23fff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z'/%3E%3Cpath d='M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12'/%3E%3C/g%3E%3Cg transform='translate(20.5 0) scale(.48)' fill='%23fbbf24' stroke='%23fbbf24' stroke-width='2' stroke-linejoin='round'%3E%3Cpath d='M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z'/%3E%3C/g%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -25,6 +30,7 @@
   html[data-theme=green]  { --brand: #2e7d4f; --brand-d: #256641; --brand-2: #3a9461; }
   html[data-theme=plum]   { --brand: #6b4f8a; --brand-d: #563f70; --brand-2: #7f62a3; }
   html[data-theme=bronze] { --brand: #8a6a3d; --brand-d: #715632; --brand-2: #a07d4a; }
+  html[data-theme=pink]   { --brand: #b0457a; --brand-d: #923a65; --brand-2: #c45e90; }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html { -webkit-text-size-adjust: 100%; }
   body { margin: 0; background: var(--desk); color: var(--ink); font: 16px/1.65 'Sarabun', 'Leelawadee UI', Tahoma, sans-serif; }
@@ -38,8 +44,19 @@
                box-shadow: 0 1px 3px rgba(20,40,60,.08), 0 24px 60px rgba(20,40,60,.14); }
   .auth-brand { background: linear-gradient(160deg, var(--brand), var(--brand-d)); color: #fff; padding: 44px 40px; display: flex; flex-direction: column;
                 justify-content: center; align-items: center; text-align: center; gap: 18px; }
-  .logo { width: 84px; height: 84px; border-radius: 22px; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.28); display: grid; place-items: center; }
-  .logo svg { width: 40px; height: 40px; }
+  /* โลโก้ Herbal ERP (แบบเดียวกับแถบเมนูของระบบ) ใช้สีเขียวของโลโก้เองทุกธีม · --s = ขนาดกล่อง */
+  .hlogo { --s: 44px; position: relative; width: var(--s); height: var(--s); flex: none; }
+  .hlogo .hl-box { width: 100%; height: 100%; border-radius: calc(var(--s) * .27); background: linear-gradient(135deg, #34d399, #14b8a6); display: grid; place-items: center;
+                   box-shadow: 0 10px 15px -3px rgba(16,185,129,.3), 0 4px 6px -4px rgba(16,185,129,.3); }
+  .hlogo .hl-leaf { width: calc(var(--s) * .545); height: calc(var(--s) * .545); }
+  .hlogo .hl-spark { position: absolute; top: calc(var(--s) * -.09); right: calc(var(--s) * -.09); width: calc(var(--s) * .27); height: calc(var(--s) * .27); }
+  .hl-txt { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; text-align: left; }
+  .hl-txt b { font-weight: 700; letter-spacing: -.01em; }
+  .hl-txt small { font-size: .58em; font-weight: 500; margin-top: 2px; }
+  .auth-logo { display: flex; align-items: center; gap: 14px; }
+  .auth-logo .hlogo { --s: 60px; }
+  .auth-logo .hl-txt { color: #fff; font-size: 26px; } .auth-logo .hl-txt small { color: rgba(255,255,255,.8); }
+  .auth-title { display: grid; gap: 6px; }
   .auth-brand h1 { font-size: 30px; line-height: 1.35; margin: 0; font-weight: 700; }
   .auth-brand p { margin: 0; font-size: 19px; font-weight: 600; color: rgba(255,255,255,.85); }
   .auth-form { padding: 28px; display: grid; align-items: center; }
@@ -70,9 +87,10 @@
   .bar { position: sticky; top: 0; z-index: 30; background: #fff; border-bottom: 1px solid var(--line); }
   .bar .in { max-width: none; margin: 0; padding: 8px 24px; display: flex; align-items: center; gap: 14px; min-height: 56px; }
   .menu-btn { display: none; white-space: nowrap; flex: none; align-items: center; gap: 8px; border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 7px 12px; font-weight: 600; color: var(--brand-d); cursor: pointer; }
-  .brand { flex: 1 1 auto; min-width: 0; white-space: nowrap; display: flex; align-items: baseline; gap: 10px; overflow: hidden; }
-  .brand b { flex: none; }
-  .brand b { color: var(--brand-d); font-size: 17px; } .brand span { color: var(--muted); font-size: 14px; flex: none; }
+  .brand { flex: 1 1 auto; min-width: 0; white-space: nowrap; display: flex; align-items: center; gap: 10px; }
+  .brand .hlogo { --s: 36px; }
+  .brand-txt { font-size: 17px; color: var(--ink); overflow: hidden; } .brand-txt small { color: var(--muted); }
+  .brand-sub { color: var(--muted); font-size: 14px; flex: none; border-left: 1px solid var(--line); padding-left: 10px; }
   .net { font-size: 13.5px; padding: 3px 10px; border-radius: 99px; white-space: nowrap; }
   .net.ok { color: var(--pass); background: #e6f4ea; } .net.wait { color: #9a5b00; background: #fff1d6; } .net.down { color: #b3261e; background: #fdecea; }
   .prog { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--muted); white-space: nowrap; }
@@ -98,7 +116,15 @@
   .sh-hd .core { color: var(--brand-d); background: var(--soft); padding: 0 6px; border-radius: 4px; font-weight: 600; white-space: nowrap; }
   .who .sut { margin-top: 6px; font-size: 13px; color: var(--muted); line-height: 1.5; }
   .who .sut b { color: var(--ink); font-weight: 600; }
-  .auth-brand .date { font-size: 15px; font-weight: 500; color: rgba(255,255,255,.8); margin-top: -8px; }
+  .who .fac { font-weight: 600; color: var(--brand-d); font-size: 14px; }
+  .linkbtn { all: unset; cursor: pointer; color: var(--brand-d); font-size: 13px; text-decoration: underline; text-underline-offset: 3px; padding: 2px 0; }
+  .dsel { border: 1px solid var(--line); border-radius: 8px; padding: 0 10px; height: 42px; background: #fff; font-size: 14.5px; max-width: 260px; }
+  /* กล่องข้อมูลผู้ทดสอบ (ขอชื่อโรงงาน / บริษัท ครั้งแรกหลังเข้าระบบ) */
+  .modal { position: fixed; inset: 0; z-index: 65; background: rgba(15,30,30,.45); display: grid; place-items: center; padding: 16px; }
+  .modal-card { background: #fff; border-radius: 14px; padding: 20px 22px 16px; width: min(460px, 100%); box-shadow: 0 24px 60px rgba(20,40,60,.25); }
+  .modal-card h3 { margin: 0 0 2px; color: var(--brand-d); font-size: 19px; }
+  .modal-card .lead2 { margin: 0 0 14px; color: var(--muted); font-size: 14px; }
+  .modal-act { display: flex; justify-content: flex-end; gap: 8px; }
   .toc .fold { display: flex; justify-content: flex-end; gap: 12px; margin-top: 4px; }
   .toc .fold button { all: unset; cursor: pointer; font-size: 13px; color: var(--brand-d); padding: 2px 0; }
   .toc .grp { all: unset; box-sizing: border-box; cursor: pointer; width: 100%; display: flex; align-items: center; gap: 6px; padding: 8px 14px 4px;
@@ -256,10 +282,10 @@
   .auth-theme .dot2[aria-pressed=true] { box-shadow: 0 0 0 2px var(--ink); }
 
   /* ---------------- แท็บเล็ต / มือถือ ---------------- */
-  @media (max-width: 1800px) { .brand span { display: none; } }   /* ชื่อรองแสดงเฉพาะจอกว้าง ไม่แสดงแบบถูกตัด */
+  @media (max-width: 1800px) { .brand .brand-sub { display: none; } }   /* ชื่อรองแสดงเฉพาะจอกว้าง ไม่แสดงแบบถูกตัด */
   @media (max-width: 1180px) {
     .menu-btn { display: inline-flex; }
-    .brand span, .prog .meter, .sys-btn span { display: none; }
+    .brand .brand-sub, .prog .meter, .sys-btn span { display: none; }
     .layout { grid-template-columns: minmax(0, 1fr); padding: 16px; }
     .side { position: fixed; z-index: 50; top: 0; left: 0; bottom: 0; width: min(360px, 88vw); max-height: none; padding: 14px; background: var(--desk);
             transform: translateX(-104%); transition: transform .22s ease; box-shadow: 0 0 30px rgba(0,0,0,.2); }
@@ -272,7 +298,7 @@
     .toc .it { padding: 10px 14px; } .toc .grp { padding: 12px 14px 6px; }
   }
   /* มือถือ: แถบบนต้องมีปุ่มออกจากระบบอยู่ในจอ (ความคืบหน้าดูได้จากตัวเลขที่ปุ่มรายการข้อ) */
-  @media (max-width: 560px) { .prog, .menu-btn .mt, .brand b { display: none; } }
+  @media (max-width: 560px) { .prog, .menu-btn .mt, .brand .brand-txt { display: none; } }
   @media (pointer: coarse) {
     .ck .box { width: 28px; height: 28px; } .ck { padding: 8px 0; }
     .att { padding: 10px 0; } .dv select, .dv input { padding: 10px 12px; }
@@ -286,7 +312,7 @@
     table.doc > tbody > tr > th, table.doc > tbody > tr > td, table.rt > tbody > tr > th, table.rt > tbody > tr > td { display: block; width: auto; border-top: 0; }
     table.doc > tbody > tr:first-child > th, table.rt > tbody > tr:first-child > th { border-top: 1px solid var(--line); }
     .auth-card { grid-template-columns: 1fr; } .auth-brand { padding: 22px; flex-direction: row; gap: 14px; text-align: left; }
-    .logo { width: 52px; height: 52px; border-radius: 14px; } .logo svg { width: 26px; height: 26px; }
+    .auth-logo .hlogo { --s: 48px; } .auth-logo .hl-txt { display: none; }
     .auth-brand h1 { font-size: 20px; } .auth-brand p { font-size: 15px; }
     .auth-form { padding: 14px; } .auth-box { padding: 10px 6px; } .two { grid-template-columns: 1fr; }
     .pager .btn { min-width: 0; flex: 1; } .pager .pos { display: none; }
@@ -346,10 +372,8 @@
 <div class="auth" id="auth" hidden>
   <div class="auth-card">
     <section class="auth-brand">
-      <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20h16M7 16v-4M11 16V8M15 16v-6M19 16V5"/></svg></div>
-      <h1>ระบบบันทึกผลการทดสอบ</h1>
-      <p>ทดสอบระบบ Herbal ERP — โรงงานผลิตยาสมุนไพรเรณูนคร</p>
-      <p class="date">14 ต.ค. 2569</p>
+      <div class="auth-logo"><div class="hlogo" aria-hidden="true"><div class="hl-box"><svg class="hl-leaf" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg></div><svg class="hl-spark" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></svg></div><div class="hl-txt"><b>Herbal ERP</b><small>Medicine Management</small></div></div>
+      <div class="auth-title"><h1>ระบบบันทึกผลการทดสอบ</h1><p>สำหรับผู้ทดสอบระบบ Herbal ERP (UAT)</p></div>
     </section>
     <section class="auth-form">
       <form class="auth-box" id="loginForm" autocomplete="on" novalidate>
@@ -372,6 +396,8 @@
         <h2>สมัครสมาชิก</h2><p class="lead">สำหรับเจ้าหน้าที่โรงงานที่ได้รับรหัสเชิญจากทีม BMS</p>
         <div class="fld"><label for="rn"><span class="req">*</span>ชื่อ-นามสกุล</label><div class="inp"><input id="rn" placeholder="กรอกชื่อ-นามสกุลจริง พร้อมคำนำหน้า"></div>
           <small>ใช้แสดงในช่องลงชื่อของเอกสารผลการทดสอบ</small></div>
+        <div class="fld"><label for="rf"><span class="req">*</span>ชื่อโรงงาน / บริษัท</label><div class="inp"><input id="rf" placeholder="กรอกชื่อโรงงานหรือบริษัทที่ทดสอบระบบ"></div>
+          <small>แสดงในหัวเอกสารสรุปผลการทดสอบ</small></div>
         <div class="fld"><label for="ro">ฝ่าย / หน่วยงาน</label><div class="inp"><input id="ro" placeholder="เช่น ฝ่ายควบคุมคุณภาพ (ถ้ามี)"></div></div>
         <div class="two">
           <div class="fld"><label for="ru"><span class="req">*</span>ชื่อผู้ใช้</label><div class="inp"><input id="ru" autocapitalize="none" spellcheck="false" placeholder="a-z, 0-9 อย่างน้อย 3 ตัว"></div></div>
@@ -399,7 +425,7 @@
     <button class="menu-btn" id="menuBtn" aria-controls="side" aria-expanded="false">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
       <span class="mt">รายการข้อ</span> <span id="menuCount"></span></button>
-    <div class="brand"><b>Herbal ERP · โรงงานเรณูนคร</b><span>ระบบบันทึกผลการทดสอบ 14 ต.ค. 2569</span></div>
+    <div class="brand"><div class="hlogo" aria-hidden="true"><div class="hl-box"><svg class="hl-leaf" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg></div><svg class="hl-spark" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></svg></div><div class="hl-txt brand-txt"><b>Herbal ERP</b><small>Medicine Management</small></div><span class="brand-sub">ระบบบันทึกผลการทดสอบ</span></div>
     <span class="net" id="net" role="status" aria-live="polite"></span>
     <div class="prog"><span id="progText"></span><div class="meter"><i id="meter"></i></div></div>
     <button class="btn dash-btn" id="dashBtn" hidden><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20h16M7 16v-4M11 16V8M15 16v-6M19 16V5"/></svg><span>แดชบอร์ดสรุปผล</span></button>
@@ -411,7 +437,8 @@
   <div class="layout">
     <aside class="side" id="side" aria-label="ข้อทดสอบ">
       <div class="who">
-        <div class="k">ผู้ทดสอบ</div><div class="name" id="whoName"></div><div class="muted" id="whoOrg"></div>
+        <div class="k">ผู้ทดสอบ</div><div class="name" id="whoName"></div><div class="fac" id="whoFactory"></div><div class="muted" id="whoOrg"></div>
+        <button class="linkbtn" id="profBtn" type="button">แก้ไขโรงงาน / หน่วยงาน</button>
         <div class="k" style="margin-top:6px">รุ่นโปรแกรมปัจจุบัน</div><div class="ver"><span class="vk">Herbal ERP</span> <span id="curVer">-</span></div>
         <div class="sut">ระบบที่ทดสอบ: <b>ระบบ Herbal ERP สำหรับทดสอบ</b> (ลิงก์ส่งให้ทางไลน์/อีเมล)</div>
       </div>
@@ -446,6 +473,7 @@
     <div class="dash-hd">
       <div><h2>แดชบอร์ดสรุปผลการทดสอบ</h2><span class="muted" id="dTime"></span></div>
       <div class="dash-act">
+        <select id="dFactory" class="dsel" aria-label="แสดงตามโรงงาน / บริษัท" hidden></select>
         <div class="verset" id="dDays" hidden>เปิดให้ทดสอบ</div>
         <label class="verset">รุ่น Herbal ERP <input id="dVer" placeholder="เช่น v1.6.85" aria-label="รุ่นโปรแกรม Herbal ERP"><button class="btn" id="dVerSave">บันทึกรุ่น</button></label>
         <button class="btn" id="dRefresh">รีเฟรช</button>
@@ -464,13 +492,23 @@
       <div class="scroll" id="dMatrix"></div></div>
     <div class="card" id="dLogCard"><h3>กิจกรรมล่าสุด</h3><div class="scroll" id="dLog"></div></div>
   </section>
+  <div class="modal" id="profile" hidden role="dialog" aria-modal="true" aria-labelledby="profTitle">
+    <form class="modal-card" id="profForm" novalidate>
+      <h3 id="profTitle">ข้อมูลผู้ทดสอบ</h3>
+      <p class="lead2" id="profLead">กรุณาระบุโรงงาน / บริษัทของท่าน (ใช้ในหัวเอกสารสรุปผลการทดสอบ)</p>
+      <div class="fld"><label for="pf"><span class="req">*</span>ชื่อโรงงาน / บริษัท</label><div class="inp"><input id="pf" placeholder="กรอกชื่อโรงงานหรือบริษัทที่ทดสอบระบบ"></div></div>
+      <div class="fld"><label for="po">ฝ่าย / หน่วยงาน</label><div class="inp"><input id="po" placeholder="เช่น ฝ่ายควบคุมคุณภาพ (ถ้ามี)"></div></div>
+      <div class="err" id="perr" role="alert"></div>
+      <div class="modal-act"><button type="button" class="btn" id="profCancel">ยกเลิก</button><button type="submit" class="btn primary" id="profSave">บันทึก</button></div>
+    </form>
+  </div>
   <div class="zoom" id="zoom" hidden role="dialog" aria-label="ภาพขยาย"><img alt=""><button class="zx" aria-label="ปิด">×</button><div class="zhint">คลิกที่ภาพเพื่อดูขนาดจริง · คลิกพื้นหลัง หรือกด Esc เพื่อปิด</div></div>
 </div>
 <div class="toast" id="toast" hidden></div>
 <div id="print-area"></div>
 
 <script src="config.js"></script>
-<script src="cases.js?v=4f8cc5212326"></script>
-<script src="app.js?v=4f8cc5212326"></script>
+<script src="cases.js?v=01ce24ee6fa5"></script>
+<script src="app.js?v=01ce24ee6fa5"></script>
 </body>
 </html>

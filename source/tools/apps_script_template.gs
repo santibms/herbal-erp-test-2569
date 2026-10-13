@@ -1,5 +1,5 @@
 /**
- * ระบบบันทึกผลการทดสอบ Herbal ERP · โรงงานผลิตยาสมุนไพรเรณูนคร (14 ต.ค. 2569) · ส่วนหลังบ้าน (Google Apps Script)
+ * ระบบบันทึกผลการทดสอบ Herbal ERP (UAT) · ส่วนหลังบ้าน (Google Apps Script) · ใช้ได้กับหลายโรงงาน (ผู้ทดสอบระบุโรงงาน / บริษัทของตัวเอง)
  * ไฟล์ apps-script/Code.gs สร้างจาก tools/apps_script_template.gs ด้วย tools/build_web_app.py ห้ามแก้ Code.gs โดยตรง
  *
  * ติดตั้ง
@@ -20,7 +20,8 @@
  *   ผลทดสอบ          1 แถว ต่อ ผู้ทดสอบ 1 ท่าน × ข้อทดสอบ 1 ข้อ (แก้ผลข้อเดิมจะแก้แถวเดิม)
  *   ประวัติการบันทึก  ทุกครั้งที่สมัคร เข้าระบบ บันทึก แก้ไข หรือแนบภาพ
  *   สรุป             สูตรสรุปผลตามผู้ทดสอบ / ระบบ และรายการข้อที่ไม่ผ่านหรือติดปัญหา
- *   ผู้ทดสอบ         บัญชีผู้ใช้ (รหัสผ่านเก็บแบบเข้ารหัสทางเดียว อ่านย้อนกลับไม่ได้)
+ *   ผู้ทดสอบ         บัญชีผู้ใช้ (รหัสผ่านเก็บแบบเข้ารหัสทางเดียว อ่านย้อนกลับไม่ได้) · คอลัมน์สุดท้าย = โรงงาน / บริษัท
+ *                    (เพิ่มเป็นคอลัมน์สุดท้าย ไม่ให้ salt / hash เลื่อน · ชีตเดิมที่ยังไม่มีหัวคอลัมน์นี้ setup เติมให้เอง)
  *                    ลืมรหัสผ่าน: พิมพ์รหัสใหม่ในช่อง "รหัสผ่านชั่วคราว" ผู้ทดสอบเข้าระบบด้วยรหัสนั้นได้ทันที
  *                    ระงับบัญชี: เปลี่ยนช่อง "สถานะ" เป็น ระงับ
  *                    ผู้ดูแล (เห็นแดชบอร์ดสรุปผล): ช่อง "บทบาท" = ผู้ดูแล หรือสมัครโดยติ๊ก "สมัครเป็นผู้ดูแล" พร้อมรหัสผู้ดูแล
@@ -31,21 +32,21 @@
 
 const SH = { RESULTS: 'ผลทดสอบ', LOG: 'ประวัติการบันทึก', SUMMARY: 'สรุป', USERS: 'ผู้ทดสอบ', CASES: 'ข้อทดสอบ', SETTINGS: 'ตั้งค่า', ANSWERS: 'คำชี้แจงผู้ดูแล' };
 const HEAD = {
-  RESULTS: ['แก้ไขล่าสุด', 'ชื่อผู้ใช้', 'ผู้ทดสอบ', 'รหัสข้อ', 'ระบบ', 'ประเภท', 'โจทย์', 'ผล', 'ผลที่ได้จริง / ปัญหาที่พบ', 'ภาพแนบ', 'วันที่ทดสอบ', 'รุ่นโปรแกรม'],
+  RESULTS: ['แก้ไขล่าสุด', 'ชื่อผู้ใช้', 'ผู้ทดสอบ', 'รหัสข้อ', 'ระบบ', 'ประเภท', 'โจทย์', 'ผล', 'ผลที่ได้จริง / ปัญหาที่พบ', 'ภาพแนบ', 'วันที่ทดสอบ', 'รุ่นโปรแกรม', 'โรงงาน / บริษัท'],
   LOG: ['เวลา', 'ชื่อผู้ใช้', 'ผู้ทดสอบ', 'รายการ', 'รหัสข้อ', 'ผลเดิม', 'ผลใหม่', 'ผลที่ได้จริง / ปัญหาที่พบ'],
-  USERS: ['ชื่อผู้ใช้', 'ชื่อ-นามสกุล', 'หน่วยงาน', 'บทบาท', 'สถานะ', 'รหัสผ่านชั่วคราว', 'สมัครเมื่อ', 'เข้าระบบล่าสุด', 'salt', 'hash'],
+  USERS: ['ชื่อผู้ใช้', 'ชื่อ-นามสกุล', 'หน่วยงาน', 'บทบาท', 'สถานะ', 'รหัสผ่านชั่วคราว', 'สมัครเมื่อ', 'เข้าระบบล่าสุด', 'salt', 'hash', 'โรงงาน / บริษัท'],
   CASES: ['ลำดับ', 'รหัสข้อ', 'ระบบ', 'ประเภท', 'โจทย์', 'ช่วงเวลา', 'เมนู', 'ขั้นตอนทดสอบ (1 บรรทัดต่อ 1 ขั้น)', 'ข้อมูลทดสอบ', 'ผลที่คาดหวัง', 'แสดง'],
 };
 const CC = { order: 0, code: 1, sys: 2, type: 3, task: 4, slot: 5, menu: 6, steps: 7, data: 8, expect: 9, show: 10 };
-const COL = { R: { t: 0, user: 1, full: 2, code: 3, v: 7, note: 8, img: 9, day: 10, ver: 11 },
-              U: { user: 0, full: 1, org: 2, role: 3, status: 4, temp: 5, created: 6, last: 7, salt: 8, hash: 9 } };
+const COL = { R: { t: 0, user: 1, full: 2, code: 3, v: 7, note: 8, img: 9, day: 10, ver: 11, factory: 12 },
+              U: { user: 0, full: 1, org: 2, role: 3, status: 4, temp: 5, created: 6, last: 7, salt: 8, hash: 9, factory: 10 } };
 const ROLE = { tester: 'ผู้ทดสอบ', admin: 'ผู้ดูแล' };
 const LABEL = { pass: 'ผ่าน', fail: 'ไม่ผ่าน', block: 'ติดปัญหา' };
 const TZ = 'Asia/Bangkok';
 const HASH_ROUNDS = 300;
 const PRODUCT = 'Herbal ERP';
 const DEFAULT_VER = 'v1.6.84';
-const DRIVE_FOLDER = 'ภาพแนบ ผลทดสอบ Herbal ERP เรณูนคร 14 ต.ค. 2569';
+const DRIVE_FOLDER = 'ภาพแนบ ผลทดสอบ Herbal ERP';   // ใช้เมื่อยังไม่มีโฟลเดอร์ในแท็บ ตั้งค่า เท่านั้น
 const KEY = { invite: 'รหัสเชิญ', adminCode: 'รหัสผู้ดูแล', ver: 'รุ่นโปรแกรมปัจจุบัน', hours: 'อายุการเข้าระบบ (ชั่วโมง)', folder: 'โฟลเดอร์ภาพแนบ', days: 'วันที่เปิดให้ทดสอบ' };
 // ส่วนที่ tools/build_web_app.py เติมให้ · รหัสเชิญอ่านจากไฟล์ .local-settings.json (ไม่เผยแพร่)
 const BUILD = /*__BUILD__*/'dev';
@@ -72,9 +73,20 @@ function setup() {
     return sh;
   };
   const dv = function (list) { return SpreadsheetApp.newDataValidation().requireValueInList(list, true).setAllowInvalid(false).build(); };
-  mk(SH.RESULTS, HEAD.RESULTS, [140, 110, 190, 80, 130, 80, 280, 80, 360, 200, 100, 100]);
-  mk(SH.LOG, HEAD.LOG, [140, 110, 190, 120, 80, 80, 80, 360]);
-  const users = mk(SH.USERS, HEAD.USERS, [120, 220, 220, 90, 80, 140, 140, 140, 60, 60]);
+  // ชีตเดิมที่สร้างจากโค้ดรุ่นก่อน: เติมเฉพาะหัวคอลัมน์ที่ยังว่าง (คอลัมน์ใหม่ต่อท้ายเสมอ ข้อมูลเดิมไม่เลื่อน)
+  const head = function (sh, h, widths) {
+    const cur = sh.getRange(1, 1, 1, h.length).getValues()[0];
+    h.forEach(function (x, i) {
+      if (String(cur[i] == null ? '' : cur[i]).trim()) return;
+      sh.getRange(1, i + 1).setValue(x).setFontWeight('bold').setBackground('#d6ebe7');
+      if (widths && widths[i]) sh.setColumnWidth(i + 1, widths[i]);
+    });
+    return sh;
+  };
+  const W = { R: [140, 110, 190, 80, 130, 80, 280, 80, 360, 200, 100, 100, 220], U: [120, 220, 220, 90, 80, 140, 140, 140, 60, 60, 240] };
+  head(mk(SH.RESULTS, HEAD.RESULTS, W.R), HEAD.RESULTS, W.R);
+  head(mk(SH.LOG, HEAD.LOG, [140, 110, 190, 120, 80, 80, 80, 360]), HEAD.LOG);
+  const users = head(mk(SH.USERS, HEAD.USERS, W.U), HEAD.USERS, W.U);
   users.hideColumns(COL.U.salt + 1, 2);
   users.getRange(2, COL.U.role + 1, 300, 1).setDataValidation(dv([ROLE.tester, ROLE.admin]));
   users.getRange(2, COL.U.status + 1, 300, 1).setDataValidation(dv(['ใช้งาน', 'ระงับ']));
@@ -109,7 +121,7 @@ function setup() {
   });
   PropertiesService.getScriptProperties().setProperty('ready', BUILD);
   const c = CacheService.getScriptCache();
-  ['cases', 'settings', 'users', 'answers'].forEach(function (k) { c.remove(k); });
+  ['cases', 'settings', 'users', 'users2', 'answers'].forEach(function (k) { c.remove(k); });
   SETTINGS_MEMO = null;
   return 'ติดตั้งเรียบร้อย';
 }
@@ -183,7 +195,7 @@ function doGet(e) {
   T0 = Date.now(); RID = str(e && e.parameter && e.parameter.rid, 40);
   try { ensureReady(); } catch (err) { console.error(err && err.stack || err); }
   let n = 0; try { n = caseList().length; } catch (err) {}
-  return out({ ok: false, code: 'METHOD', error: 'ระบบตอบกลับผิดพลาด กรุณาลองใหม่', service: PRODUCT + ' เรณูนคร · ระบบบันทึกผลการทดสอบ', build: BUILD, cases: n });
+  return out({ ok: false, code: 'METHOD', error: 'ระบบตอบกลับผิดพลาด กรุณาลองใหม่', service: PRODUCT + ' · ระบบบันทึกผลการทดสอบ', build: BUILD, cases: n });
 }
 
 function doPost(e) {
@@ -203,7 +215,7 @@ function doPost(e) {
   }
 }
 
-const ACTIONS = { register: register, login: login, me: me, save: save, upload: upload, logout: logout, dashboard: dashboard, setCurrent: setCurrent, setOpenDays: setOpenDays, diag: diag, addCases: addCases, answer: answer };
+const ACTIONS = { register: register, login: login, me: me, save: save, upload: upload, logout: logout, dashboard: dashboard, setCurrent: setCurrent, setOpenDays: setOpenDays, diag: diag, addCases: addCases, answer: answer, setProfile: setProfile };
 
 // สร้างแท็บที่ยังไม่มี / ปรับข้อทดสอบเมื่อขึ้นโค้ดรุ่นใหม่ (ตรวจไม่บ่อย: จำผลไว้ในแคช 6 ชั่วโมง)
 function ensureReady(force) {
@@ -331,9 +343,10 @@ function auth(req) {
   const raw = req.token && PropertiesService.getScriptProperties().getProperty('S_' + str(req.token, 100));
   const s = raw ? JSON.parse(raw) : null;
   if (!s || s.exp < Date.now()) fail('AUTH', 'หมดเวลาเข้าระบบ กรุณาเข้าสู่ระบบใหม่');
-  // ใช้ข้อมูลผู้ใช้จากแคช (เฉพาะ ชื่อผู้ใช้ ชื่อ หน่วยงาน บทบาท สถานะ ไม่เก็บรหัสผ่าน)
-  const rows = cached('users', 60, function () {
-    return rowsOf(sheet(SH.USERS), COL.U.status + 1).map(function (r) { return r.map(function (x) { return String(x); }); });
+  // ใช้ข้อมูลผู้ใช้จากแคช (ชื่อผู้ใช้ ชื่อ หน่วยงาน บทบาท สถานะ โรงงาน · ไม่เก็บรหัสผ่านชั่วคราว salt hash)
+  const secret = [COL.U.temp, COL.U.salt, COL.U.hash];
+  const rows = cached('users2', 60, function () {
+    return rowsOf(sheet(SH.USERS), HEAD.USERS.length).map(function (r) { return r.map(function (x, i) { return secret.indexOf(i) >= 0 ? '' : String(x); }); });
   });
   const r = rows.filter(function (x) { return x[COL.U.user].toLowerCase() === s.u; })[0];
   if (!r || r[COL.U.status] === 'ระงับ') fail('AUTH', 'บัญชีนี้ใช้งานไม่ได้ กรุณาติดต่อทีม BMS');
@@ -341,7 +354,7 @@ function auth(req) {
 }
 function userOf(r) {
   return { username: String(r[COL.U.user]).toLowerCase(), full: unq(r[COL.U.full]), org: unq(r[COL.U.org]),
-           role: String(r[COL.U.role]).trim() === ROLE.admin ? 'admin' : 'tester' };
+           factory: unq(r[COL.U.factory]).trim(), role: String(r[COL.U.role]).trim() === ROLE.admin ? 'admin' : 'tester' };
 }
 function tooMany(key, limit) {
   const c = CacheService.getScriptCache(), n = Number(c.get(key) || 0);
@@ -353,10 +366,10 @@ function bump(key) {
 }
 
 function register(req) {
-  const invite = str(req.invite, 100), u = str(req.username, 40).toLowerCase(), full = str(req.full, 120), org = str(req.org, 160);
+  const invite = str(req.invite, 100), u = str(req.username, 40).toLowerCase(), full = str(req.full, 120), org = str(req.org, 160), factory = str(req.factory, 160);
   const pw = String(req.password || ''), admin = req.admin === true;
   if (tooMany('inv', 30)) fail('LOCKED', 'ลองรหัสเชิญผิดหลายครั้ง กรุณารอ 10 นาที');
-  if (!full || !u || !pw || !invite) fail('INPUT', 'กรุณากรอกช่องที่มีเครื่องหมาย * ให้ครบ');
+  if (!full || !u || !pw || !invite || !factory) fail('INPUT', 'กรุณากรอกช่องที่มีเครื่องหมาย * ให้ครบ');
   if (!/^[a-z0-9._-]{3,40}$/.test(u)) fail('INPUT', 'ชื่อผู้ใช้ใช้ได้เฉพาะ a-z 0-9 . _ - อย่างน้อย 3 ตัว');
   if (pw.length < 6 || pw.length > 100) fail('INPUT', 'รหัสผ่านต้องมี 6 – 100 ตัว');
   if (invite !== unq(setting(KEY.invite))) { bump('inv'); fail('INVITE', 'รหัสเชิญไม่ถูกต้อง กรุณาติดต่อทีม BMS'); }
@@ -364,10 +377,10 @@ function register(req) {
   return withLock(function () {
     if (findUser(u)) fail('USER_EXISTS', 'ชื่อผู้ใช้นี้มีคนใช้แล้ว');
     const salt = Utilities.getUuid(), t = now();
-    sheet(SH.USERS).appendRow([u, safe(full), safe(org), admin ? ROLE.admin : ROLE.tester, 'ใช้งาน', '', t, t, safe(salt), safe(hashPw(salt, pw))]);   // ใส่ ' นำหน้า: hash ที่ขึ้นต้นด้วย + ไม่ถูกตีความเป็นสูตร
-    CacheService.getScriptCache().remove('users');
-    log(u, full, admin ? 'สมัครสมาชิก (ผู้ดูแล)' : 'สมัครสมาชิก');
-    return { ok: true, token: newSession(u), user: { username: u, full: full, org: org, role: admin ? 'admin' : 'tester' }, current: current() };
+    sheet(SH.USERS).appendRow([u, safe(full), safe(org), admin ? ROLE.admin : ROLE.tester, 'ใช้งาน', '', t, t, safe(salt), safe(hashPw(salt, pw)), safe(factory)]);   // ใส่ ' นำหน้า: hash ที่ขึ้นต้นด้วย + ไม่ถูกตีความเป็นสูตร
+    CacheService.getScriptCache().remove('users2');
+    log(u, full, admin ? 'สมัครสมาชิก (ผู้ดูแล)' : 'สมัครสมาชิก', '', '', '', factory);
+    return { ok: true, token: newSession(u), user: { username: u, full: full, org: org, factory: factory, role: admin ? 'admin' : 'tester' }, current: current() };
   });
 }
 
@@ -447,7 +460,7 @@ function save(req) {
     }
     const sh = sheet(SH.RESULTS), f = findResult(sh, user.username, code);
     const oldV = f ? String(f.r[COL.R.v]) : '', oldNote = f ? unq(f.r[COL.R.note]) : '';
-    const row = [t, user.username, safe(user.full), code, c.sysName, c.type, safe(c.task), LABEL[v] || '', safe(note), f ? f.r[COL.R.img] : '', safe(day), safe(ver)];
+    const row = [t, user.username, safe(user.full), code, c.sysName, c.type, safe(c.task), LABEL[v] || '', safe(note), f ? f.r[COL.R.img] : '', safe(day), safe(ver), safe(user.factory)];
     if (f) sh.getRange(f.row, 1, 1, row.length).setValues([row]); else sh.appendRow(row);
     return { isNew: !f, oldV: oldV, oldNote: oldNote };
   });
@@ -475,9 +488,36 @@ function upload(req) {
     const sh = sheet(SH.RESULTS), f = findResult(sh, user.username, code);
     const imgs = (f ? imgsOf(f.r[COL.R.img]) : []).concat([url]).join('\n');
     if (f) sh.getRange(f.row, COL.R.img + 1).setValue(imgs);
-    else sh.appendRow([now(), user.username, safe(user.full), code, c.sysName, c.type, safe(c.task), '', '', imgs, '', '']);
+    else sh.appendRow([now(), user.username, safe(user.full), code, c.sysName, c.type, safe(c.task), '', '', imgs, '', '', safe(user.factory)]);
     log(user.username, user.full, 'แนบภาพ', code, '', '', name);
     return { ok: true, url: url, name: name };
+  });
+}
+
+// แก้ข้อมูลผู้ทดสอบ: โรงงาน / บริษัท (บังคับ) และหน่วยงาน (ส่ง org มา = แก้ · ไม่ส่ง = คงเดิม · ส่ง "" = ล้าง)
+// ผู้ทดสอบแก้ได้เฉพาะแถวของตัวเอง · ผู้ดูแลแก้ของผู้อื่นได้โดยส่ง user = ชื่อผู้ใช้
+// ผลที่บันทึกไว้แล้วของผู้ใช้นั้นได้ช่องโรงงานตรงกันด้วย
+function setProfile(req) {
+  const me = auth(req), target = str(req.user, 40).toLowerCase() || me.username;
+  if (target !== me.username && me.role !== 'admin') fail('FORBIDDEN', 'แก้ได้เฉพาะข้อมูลของตัวเอง');
+  const factory = str(req.factory, 160), hasOrg = req.org !== undefined && req.org !== null, org = str(req.org, 160);
+  if (!factory) fail('INPUT', 'กรุณากรอกชื่อโรงงาน / บริษัท');
+  return withLock(function () {
+    const f = findUser(target);
+    if (!f) fail('INPUT', 'ไม่พบชื่อผู้ใช้ ' + target);
+    f.sh.getRange(f.row, COL.U.factory + 1).setValue(safe(factory));
+    if (hasOrg) f.sh.getRange(f.row, COL.U.org + 1).setValue(safe(org));
+    const rs = sheet(SH.RESULTS), n = rs.getLastRow();
+    if (n > 1) {
+      const who = rs.getRange(2, COL.R.user + 1, n - 1, 1).getValues(), fac = rs.getRange(2, COL.R.factory + 1, n - 1, 1).getValues();
+      let changed = false;
+      who.forEach(function (w, i) { if (String(w[0]) === target && unq(fac[i][0]) !== factory) { fac[i][0] = safe(factory); changed = true; } });
+      if (changed) rs.getRange(2, COL.R.factory + 1, n - 1, 1).setValues(fac);
+    }
+    CacheService.getScriptCache().remove('users2');
+    log(me.username, me.full, target === me.username ? 'แก้ข้อมูลผู้ทดสอบ' : 'ผู้ดูแลแก้ข้อมูลผู้ทดสอบ', '', '', target,
+        'โรงงาน / บริษัท: ' + factory + (hasOrg ? ' · หน่วยงาน: ' + (org || '-') : ''));
+    return { ok: true, user: userOf(findUser(target).r) };
   });
 }
 
@@ -490,7 +530,7 @@ function dashboard(req) {
   });
   const results = rowsOf(sheet(SH.RESULTS), HEAD.RESULTS.length).filter(function (r) { return r[COL.R.user]; }).map(function (r) {
     return { user: String(r[COL.R.user]), code: String(r[COL.R.code]), v: keyOf(r[COL.R.v]), note: unq(r[COL.R.note]), t: ms(r[COL.R.t]),
-             img: imgsOf(r[COL.R.img]), day: unq(r[COL.R.day]), ver: unq(r[COL.R.ver]) };
+             img: imgsOf(r[COL.R.img]), day: unq(r[COL.R.day]), ver: unq(r[COL.R.ver]), factory: unq(r[COL.R.factory]) };
   });
   const lg = sheet(SH.LOG), n = lg.getLastRow(), k = Math.min(50, Math.max(0, n - 1));
   const log = k ? lg.getRange(n - k + 1, 1, k, HEAD.LOG.length).getValues().reverse().map(function (r) {

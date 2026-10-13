@@ -4,6 +4,7 @@
 //   GET /__dump        ดูข้อมูลทุกแท็บ (JSON)
 //   GET /__setup       เรียก setup ซ้ำ (ตรวจว่าเรียกซ้ำแล้วข้อมูลไม่ซ้ำ)
 //   POST /__set        {sheet, row, col, value} แก้ค่าในแท็บ (จำลองแอดมินแก้ Sheet)
+//   POST /__props      {key, value} ตั้งค่า Script Properties (เช่น ready = รุ่นเก่า เพื่อจำลองการขึ้นโค้ดรุ่นใหม่)
 //   POST /__offline    {on: true|false} จำลองระบบหลังบ้านล่ม
 const fs = require('fs'), path = require('path'), http = require('http'), crypto = require('crypto'), vm = require('vm');
 const ARGS = process.argv.slice(2), NO_SETUP = ARGS.includes('--no-setup');
@@ -114,6 +115,7 @@ http.createServer((req, res) => {
       if (req.url === '/__setup') { const r = ctx.__api.setup(); return send(200, { result: r, rows: Object.fromEntries(sheets.map(s => [s.name, s.getLastRow()])), folders: Object.values(folders).map(f => f.getName()) }); }
       if (req.url === '/__clearcache') { Object.keys(cache).forEach(k => delete cache[k]); return send(200, { ok: true }); }
       if (req.url === '/__offline') { offline = !!JSON.parse(body).on; return send(200, { offline }); }
+      if (req.url === '/__props') { const q = JSON.parse(body); props[q.key] = String(q.value); return send(200, { ok: true }); }
       if (req.url === '/__set') { const q = JSON.parse(body); ss.getSheetByName(q.sheet).set(q.row, q.col, q.value); return send(200, { ok: true }); }
       if (req.url === '/__stall') { stall = JSON.parse(body); return send(200, stall); }
       if (req.url === '/__hits') return send(200, hits);
