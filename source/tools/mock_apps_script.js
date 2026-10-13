@@ -95,7 +95,8 @@ const ctx = {
   ContentService: { MimeType: { JSON: 'json' }, createTextOutput: s => ({ _s: s, setMimeType() { return this; }, getContent() { return this._s; } }) },
 };
 vm.createContext(ctx);
-vm.runInContext(fs.readFileSync(GS, 'utf8') + '\n;this.__api = { setup, doGet, doPost };', ctx, { filename: 'Code.gs' });
+// Apps Script จริงเริ่มตัวแปร global ใหม่ทุกคำขอ: reset() ล้างค่าที่จำไว้ภายในคำขอ (เช่น SETTINGS_MEMO) ก่อนทุกคำขอ
+vm.runInContext(fs.readFileSync(GS, 'utf8') + '\n;this.__api = { setup, doGet, doPost, reset: function () { SETTINGS_MEMO = null; HOLD = false; T0 = 0; RID = ""; } };', ctx, { filename: 'Code.gs' });
 console.log(NO_SETUP ? 'setup: ข้าม (--no-setup) คำขอแรกจะสร้างแท็บให้เอง' : 'setup: ' + ctx.__api.setup());
 
 let offline = false;
@@ -112,6 +113,7 @@ http.createServer((req, res) => {
   req.on('end', () => {
     try {
       if (req.url === '/__dump') return send(200, dump());
+      ctx.__api.reset();
       if (req.url === '/__setup') { const r = ctx.__api.setup(); return send(200, { result: r, rows: Object.fromEntries(sheets.map(s => [s.name, s.getLastRow()])), folders: Object.values(folders).map(f => f.getName()) }); }
       if (req.url === '/__clearcache') { Object.keys(cache).forEach(k => delete cache[k]); return send(200, { ok: true }); }
       if (req.url === '/__offline') { offline = !!JSON.parse(body).on; return send(200, { offline }); }

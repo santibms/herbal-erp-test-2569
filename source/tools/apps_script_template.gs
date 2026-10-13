@@ -27,6 +27,7 @@
  *                    ผู้ดูแล (เห็นแดชบอร์ดสรุปผล): ช่อง "บทบาท" = ผู้ดูแล หรือสมัครโดยติ๊ก "สมัครเป็นผู้ดูแล" พร้อมรหัสผู้ดูแล
  *   ข้อทดสอบ         รายการข้อทดสอบทั้งหมด (ตรงกับไฟล์ข้อทดสอบ data/cases-renu.json)
  *   ตั้งค่า           รหัสเชิญสำหรับสมัครสมาชิก / รุ่นโปรแกรมปัจจุบัน / อายุการเข้าระบบ / โฟลเดอร์ภาพแนบ
+ *                    ปุ่มวิธีการบันทึก (เปิด / ปิด) และลิงก์วิธีการบันทึก: ปุ่มเปิดเว็บตัวอย่างทีละขั้นในหน้าเว็บ (มีผลภายใน 1 นาที)
  *                    อัปเดตโปรแกรมระหว่างทดสอบ: แก้ "รุ่นโปรแกรมปัจจุบัน" ข้อที่ทดสอบหลังจากนั้นจะบันทึกรุ่นใหม่ให้เอง
  */
 
@@ -47,7 +48,9 @@ const HASH_ROUNDS = 300;
 const PRODUCT = 'Herbal ERP';
 const DEFAULT_VER = 'v1.6.84';
 const DRIVE_FOLDER = 'ภาพแนบ ผลทดสอบ Herbal ERP';   // ใช้เมื่อยังไม่มีโฟลเดอร์ในแท็บ ตั้งค่า เท่านั้น
-const KEY = { invite: 'รหัสเชิญ', adminCode: 'รหัสผู้ดูแล', ver: 'รุ่นโปรแกรมปัจจุบัน', hours: 'อายุการเข้าระบบ (ชั่วโมง)', folder: 'โฟลเดอร์ภาพแนบ', days: 'วันที่เปิดให้ทดสอบ' };
+const KEY = { invite: 'รหัสเชิญ', adminCode: 'รหัสผู้ดูแล', ver: 'รุ่นโปรแกรมปัจจุบัน', hours: 'อายุการเข้าระบบ (ชั่วโมง)', folder: 'โฟลเดอร์ภาพแนบ', days: 'วันที่เปิดให้ทดสอบ',
+              trainOn: 'ปุ่มวิธีการบันทึก', trainUrl: 'ลิงก์วิธีการบันทึก' };
+const TRAIN_URL = 'https://santibms.github.io/herbal-erp-test-trainnig/';   // เว็บตัวอย่างวิธีการบันทึกทีละขั้น (หน้าข้อทดสอบลิงก์ไปที่ #รหัสข้อ)
 // ส่วนที่ tools/build_web_app.py เติมให้ · รหัสเชิญอ่านจากไฟล์ .local-settings.json (ไม่เผยแพร่)
 const BUILD = /*__BUILD__*/'dev';
 const DEFAULT_INVITE = /*__INVITE__*/'';
@@ -161,6 +164,8 @@ function ensureSettings(st) {
     [KEY.ver, safe(DEFAULT_VER), 'ทีม BMS แก้ค่านี้ทุกครั้งที่อัปเดต ' + PRODUCT + ' หน้าเว็บใช้เป็นค่าเริ่มต้นของข้อที่ทดสอบหลังจากนั้น (ข้อที่บันทึกแล้วไม่เปลี่ยน)'],
     [KEY.hours, 72, 'เข้าระบบแล้วอยู่ได้นานเท่านี้ก่อนต้องเข้าใหม่'],
     [KEY.folder, '', 'รหัสโฟลเดอร์ Google Drive ที่เก็บภาพหน้าจอที่ผู้ทดสอบแนบ'],
+    [KEY.trainOn, 'เปิด', 'เปิด = แสดงปุ่ม "วิธีการบันทึก (ตัวอย่างทีละขั้น)" ที่หน้าเข้าสู่ระบบ แถบบน และหน้าข้อทดสอบ · ปิด = ซ่อนปุ่ม (มีผลภายใน 1 นาที)'],
+    [KEY.trainUrl, TRAIN_URL, 'ลิงก์เว็บตัวอย่างวิธีการบันทึก (หน้าข้อทดสอบต่อท้ายด้วย #รหัสข้อ เช่น #ACC-02)'],
   ];
   const help = [
     ['วิธีตั้งผู้ดูแล', 'แท็บ ผู้ทดสอบ > ช่อง บทบาท = ผู้ดูแล', 'ผู้ดูแลจะเห็นปุ่ม แดชบอร์ดสรุปผล ด้านบนหลังเข้าระบบใหม่'],
@@ -172,6 +177,12 @@ function ensureSettings(st) {
     st.getRange(want.length + 3, 1, help.length, 3).setValues(help);
   } else {
     want.concat(help).filter(function (w) { return !(w[0] in has); }).forEach(function (w) { st.appendRow(w); });
+  }
+  // ปุ่มวิธีการบันทึก: ช่องค่าเป็นตัวเลือก เปิด / ปิด (ตั้งซ้ำได้)
+  const keys = rowsOf(st, 1);
+  for (let i = 0; i < keys.length; i++) if (String(keys[i][0]).trim() === KEY.trainOn) {
+    st.getRange(i + 2, 2).setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['เปิด', 'ปิด'], true).setAllowInvalid(false).build());
+    break;
   }
   // โฟลเดอร์ภาพแนบ: ใช้โฟลเดอร์เดิมถ้ายังเปิดได้ ไม่งั้นหาโฟลเดอร์ชื่อเดียวกัน แล้วจึงสร้างใหม่
   const id = rows.length ? has[KEY.folder] : '';
@@ -194,8 +205,9 @@ let T0 = 0, RID = '', HOLD = false;
 function doGet(e) {
   T0 = Date.now(); RID = str(e && e.parameter && e.parameter.rid, 40);
   try { ensureReady(); } catch (err) { console.error(err && err.stack || err); }
-  let n = 0; try { n = caseList().length; } catch (err) {}
-  return out({ ok: false, code: 'METHOD', error: 'ระบบตอบกลับผิดพลาด กรุณาลองใหม่', service: PRODUCT + ' · ระบบบันทึกผลการทดสอบ', build: BUILD, cases: n });
+  let n = 0, train = null; try { n = caseList().length; } catch (err) {}
+  try { train = trainOf(); } catch (err) {}   // หน้าเข้าสู่ระบบใช้แสดงปุ่มวิธีการบันทึก (ตอบเฉพาะ 2 ค่านี้ ไม่ต้องเข้าระบบ)
+  return out({ ok: false, code: 'METHOD', error: 'ระบบตอบกลับผิดพลาด กรุณาลองใหม่', service: PRODUCT + ' · ระบบบันทึกผลการทดสอบ', build: BUILD, cases: n, train: train });
 }
 
 function doPost(e) {
@@ -296,7 +308,11 @@ function setSetting(name, value) {
 // วันที่เปิดให้ทดสอบ: ผู้ทดสอบเห็นเฉพาะข้อของวันที่เปิด (ยังไม่ตั้งค่า = เปิดวันแรก) · มีผลเมื่อมีวันทดสอบมากกว่า 1 วัน
 function current() {
   const d = unq(setting(KEY.days) || TEST_DAYS[0]);
-  return { ver: unq(setting(KEY.ver) || DEFAULT_VER).trim(), days: d.split(',').map(function (x) { return x.trim(); }).filter(String) };
+  return { ver: unq(setting(KEY.ver) || DEFAULT_VER).trim(), days: d.split(',').map(function (x) { return x.trim(); }).filter(String), train: trainOf() };
+}
+// ปุ่มวิธีการบันทึก: on = ค่าในแท็บ ตั้งค่า เป็น "เปิด" · url = ลิงก์เว็บตัวอย่าง
+function trainOf() {
+  return { on: unq(setting(KEY.trainOn)).trim() === 'เปิด', url: unq(setting(KEY.trainUrl)).trim() };
 }
 function str(v, max) { return String(v == null ? '' : v).trim().slice(0, max); }
 // ข้อความจากผู้ใช้เก็บเป็นข้อความเสมอ (ใส่ ' นำหน้า): กันสูตร และกัน Sheet แปลง "14 ต.ค. 2569" / "1.2" เป็นวันที่หรือตัวเลข

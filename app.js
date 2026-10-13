@@ -34,6 +34,7 @@
   const ICON = {
     check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
     clip: '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m21 11-8.5 8.5a5 5 0 0 1-7-7L14 4a3.3 3.3 0 0 1 4.7 4.7L10.2 17a1.7 1.7 0 0 1-2.4-2.4L15 7.5"/></svg>',
+    book: '<svg class="ic" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>',
     zoom: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4M11 8v6M8 11h6"/></svg>',
   };
   const $ = id => document.getElementById(id);
@@ -168,6 +169,7 @@
       if (session) { buildList(state.serverCases); if (!$('app').hidden) render(); }
     }
     if (!cu) return;
+    if (cu.train) setTrain(cu.train);
     const vb = (cu.ver || '').trim();
     if (!vb || vb === state.current.ver) return;
     state.current.ver = vb; persist(); showVers();
@@ -186,6 +188,7 @@
     $('loginForm').hidden = view !== 'login'; $('regForm').hidden = view !== 'reg';
     $('lerr').textContent = view === 'login' ? (msg || '') : ''; $('rerr').textContent = '';
     $('cfgWarn').hidden = !!API;
+    applyTrain(); refreshTrain();
     setTimeout(() => { const f = view === 'login' ? $('lu') : $('rn'); if (f && !('ontouchstart' in window)) f.focus(); }, 60);
   }
   document.querySelectorAll('.eye').forEach(b => b.onclick = () => { const i = $(b.dataset.for); i.type = i.type === 'password' ? 'text' : 'password'; });
@@ -199,7 +202,35 @@
   }
   // ปลุกระบบหลังบ้านตั้งแต่เปิดหน้าเข้าสู่ระบบ ให้กดเข้าสู่ระบบแล้วตอบเร็วขึ้น
   // (ถ้าเข้าระบบค้างไว้แล้ว หน้าเว็บโหลดผลทันทีอยู่แล้ว ไม่ต้องส่งคำขอเพิ่ม)
-  if (API && !(session && session.token)) fetch(API, { method: 'GET' }).catch(() => {});
+  // ======================================================================= ปุ่มวิธีการบันทึก
+  // ลิงก์ไปเว็บตัวอย่างทีละขั้น · เปิด/ปิดและลิงก์ตั้งที่แท็บ ตั้งค่า (มาพร้อม current ทุกคำตอบ และ GET ที่ไม่ต้องเข้าระบบ)
+  // หน้าข้อทดสอบลิงก์ไปที่ <ลิงก์>#<รหัสข้อ> เช่น #ACC-02
+  const TRAIN_KEY = 'renu-train', TRAIN_LABEL = 'วิธีการบันทึก (ตัวอย่างทีละขั้น)';
+  let TRAIN = store.get(TRAIN_KEY, null), trainAt = 0;
+  const trainOn = () => !!(TRAIN && TRAIN.on && /^https?:\/\//.test(TRAIN.url || ''));
+  const trainHref = code => String(TRAIN.url).replace(/#.*$/, '') + (code ? '#' + encodeURIComponent(code) : '');
+  function applyTrain() {
+    const on = trainOn();
+    ['trainTop', 'trainLogin', 'trainCase'].forEach(id => {
+      const a = $(id); if (!a) return;
+      a.hidden = !on;
+      if (on) a.href = trainHref(a.dataset.code || ''); else a.removeAttribute('href');
+    });
+  }
+  function setTrain(t) {
+    if (!t || typeof t.on !== 'boolean') return;
+    const nt = { on: t.on, url: String(t.url || '').trim() };
+    if (!TRAIN || TRAIN.on !== nt.on || TRAIN.url !== nt.url) { TRAIN = nt; store.set(TRAIN_KEY, TRAIN); }
+    applyTrain();
+  }
+  // GET ปลุกระบบหลังบ้าน และอ่านค่าปุ่ม (ไม่ต้องเข้าระบบ) · ไม่ส่งซ้ำภายใน 30 วินาที
+  function refreshTrain() {
+    if (!API || Date.now() - trainAt < 30000) return;
+    trainAt = Date.now();
+    fetch(API, { method: 'GET' }).then(r => r.json()).then(j => setTrain(j && j.train)).catch(() => {});
+  }
+  applyTrain();
+  if (API && !(session && session.token)) refreshTrain();
   const errText = e => e.code === 'NET' ? 'ระบบตอบช้าหรือเชื่อมต่อไม่ได้ กรุณาลองใหม่อีกครั้ง' : e.message;
   $('loginForm').onsubmit = e => {
     e.preventDefault();
@@ -251,6 +282,7 @@
     const u = session.user;
     state = Object.assign({ code: '', res: {}, current: { ver: '' }, serverCases: null }, store.get(KEY.state(u.username), {}));
     if (current && current.ver) state.current.ver = current.ver;
+    if (current && current.train) setTrain(current.train);
     if (current && current.days && current.days.length) state.current.days = current.days;   // วันที่เปิดให้ทดสอบจากการเข้าระบบ (ไม่ใช่ค่าเก่าในเครื่อง)
     outbox = store.get(KEY.outbox(u.username), []);
     buildList(state.serverCases);
@@ -269,7 +301,7 @@
       if (!j.user.factory) openProfile(true);   // บัญชีเดิมที่ยังไม่มีชื่อโรงงาน: ขอให้กรอกครั้งเดียว
       state.serverCases = j.cases || null;
       myAnswers = {}; (j.answers || []).forEach(a => { myAnswers[a.code] = a; });
-      if (j.current) { if (j.current.days && j.current.days.length) state.current.days = j.current.days; if (j.current.ver) state.current.ver = j.current.ver; showVers(); }
+      if (j.current) { if (j.current.days && j.current.days.length) state.current.days = j.current.days; if (j.current.ver) state.current.ver = j.current.ver; showVers(); setTrain(j.current.train); }
       const pend = {}; outbox.forEach(o => { pend[o.code] = true; });
       const merged = {};
       Object.keys(j.results || {}).forEach(code => { merged[code] = j.results[code]; });
@@ -407,7 +439,8 @@
     const day = r.day || defaultDay(c), ver = r.ver || curVerOf(c) || '';
     $('sheet').innerHTML = `
       <div class="sh-hd"><span>${esc(c.sysName)} · ${esc(c.sec)}${c.core ? ' <b class="core">โจทย์หลัก (ทำใน Zoom)</b>' : ''}</span><span>${esc(c.slot)}</span></div>
-      <h1><span class="code">${esc(c.code)}</span>${esc(c.task)}</h1>
+      <div class="h1row"><h1><span class="code">${esc(c.code)}</span>${esc(c.task)}</h1>
+        <a class="btn train-case" id="trainCase" data-code="${esc(c.code)}" target="_blank" rel="noopener" title="${TRAIN_LABEL} ของข้อ ${esc(c.code)} · เปิดในแท็บใหม่" hidden>${ICON.book}${TRAIN_LABEL}</a></div>
       ${c.img ? `<figure><img src="${esc(c.img)}" alt="${esc(c.shotCap)}" data-zoom="1" loading="lazy"><figcaption>${ICON.zoom} ${esc(c.shotCap)} · คลิกที่ภาพเพื่อขยาย</figcaption></figure>` : ''}
       <table class="doc"><tbody>
         ${row('ประเภทโจทย์', `<div class="typ"><span class="tag ${c.type}">${esc(c.type)}</span><span>${esc(ti.what)}</span></div>`)}
@@ -438,6 +471,7 @@
         </tbody></table>
         <div class="saved" id="saved"></div>
       </section>`;
+    applyTrain();
     $('pos').textContent = `ข้อ ${i + 1} / ${LIST.length}`;
     $('prev').disabled = i <= 0; $('next').disabled = i >= LIST.length - 1;
     renderAtts(c.code); paintStatus(c.code);

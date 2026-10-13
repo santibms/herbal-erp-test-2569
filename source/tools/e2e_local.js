@@ -25,6 +25,7 @@ const post = (a, b) => new Promise((ok, bad) => {
   });
   rq.on('error', bad); rq.end(body);
 });
+const TRAIN_URL = 'https://santibms.github.io/herbal-erp-test-trainnig/';   // เว็บตัวอย่างวิธีการบันทึก (ในการทดสอบนี้ตอบหน้าจำลอง)
 const FAC = 'โรงงานทดสอบตัวอย่าง จำกัด', OLD_FAC = 'โรงงานตัวอย่างเดิม', OLD_FAC2 = 'โรงงานตัวอย่างเดิม (ผู้ดูแลแก้)';
 const results = [];
 function check(name, ok, info) { results.push({ name, ok: !!ok, info: info || '' }); console.log((ok ? 'ผ่าน   ' : 'ไม่ผ่าน ') + name + (info ? ' · ' + info : '')); }
@@ -60,6 +61,12 @@ let mock = null;
   // ใช้หลังบ้านจำลองแทน config.js จริง (config.js ในโฟลเดอร์ไม่ถูกแก้)
   await page.route('**/config.js', r => r.fulfill({ contentType: 'text/javascript', body: `window.SA_CONFIG = { API_URL: '${API}' };` }));
   await page.addInitScript(() => { window.print = () => { window.__printed = (window.__printed || 0) + 1; }; });
+  await browser.contexts()[0].route(TRAIN_URL + '**', r => r.fulfill({ contentType: 'text/html', body: '<title>ตัวอย่างวิธีการบันทึก (จำลอง)</title>ok' }));
+  // ส่วนหัวไม่ล้นจอ: ตำแหน่งขวาสุดของปุ่มในแถบบน <= ความกว้างจอ
+  const barFits = async (pg, w) => pg.evaluate(w => {
+    const els = [...document.querySelectorAll('.bar .in > *')].filter(e => e.offsetParent);
+    return Math.max(document.documentElement.scrollWidth, ...els.map(e => e.getBoundingClientRect().right)) - w;
+  }, w);
 
   // ---------- หน้าเข้าสู่ระบบ / คำขอแรกสร้างแท็บ ----------
   await page.goto(`http://127.0.0.1:${WEB_PORT}/`);
@@ -82,6 +89,17 @@ let mock = null;
   check('หน้าเข้าสู่ระบบไม่ระบุชื่อโรงงาน (ใช้ซ้ำกับโรงงานอื่นได้)', !/เรณู/.test(look.title + look.auth), look.title);
   check('โลโก้ Herbal ERP (ใบไม้ + ประกาย + Medicine Management) และไอคอนแท็บ', look.logo && /Herbal ERP/.test(look.txt) && /Medicine Management/.test(look.txt) && /%2334d399/.test(look.icon));
   check('ธีมเริ่มต้นชมพู มีตัวเลือกชมพู และโลโก้ยังเป็นสีเขียว', look.theme === 'pink' && look.pink && /52, 211, 153/.test(look.boxBg), look.theme + ' · ' + look.boxBg.slice(0, 60));
+  const st0 = (await get('/__dump'));
+  const stRows = st0.sheets['ตั้งค่า'] || [], stv = k => ((stRows.find(r => r[0] === k) || [])[1] || '');
+  const tRow = stRows.findIndex(r => r[0] === 'ปุ่มวิธีการบันทึก') + 1;
+  const dv = ((st0.validation || {})['ตั้งค่า'] || []).find(v => v.r === tRow && v.c === 2) || {};
+  check('แท็บ ตั้งค่า: ปุ่มวิธีการบันทึก = เปิด (ตัวเลือก เปิด/ปิด) และลิงก์วิธีการบันทึก', stv('ปุ่มวิธีการบันทึก') === 'เปิด' && stv('ลิงก์วิธีการบันทึก') === TRAIN_URL && JSON.stringify(dv.list) === '["เปิด","ปิด"]', JSON.stringify(dv.list));
+  const g0 = await get('/exec');
+  check('GET ที่ไม่ต้องเข้าระบบ: ส่งเฉพาะค่าปุ่มวิธีการบันทึก (ไม่มีค่าตั้งค่าอื่น)', g0.train && g0.train.on === true && g0.train.url === TRAIN_URL && Object.keys(g0.train).length === 2
+    && !/Admin|BMS-/.test(JSON.stringify(g0)), Object.keys(g0).join(','));
+  await page.waitForSelector('#trainLogin:not([hidden])', { timeout: 15000 }).catch(() => {});
+  const tl = await page.$eval('#trainLogin', a => ({ hidden: a.hidden, href: a.href, target: a.target, text: a.textContent.trim() }));
+  check('หน้าเข้าสู่ระบบ: ปุ่มวิธีการบันทึก (เปิดแท็บใหม่)', !tl.hidden && tl.href === TRAIN_URL && tl.target === '_blank' && tl.text === 'วิธีการบันทึก (ตัวอย่างทีละขั้น)', tl.href);
   await page.screenshot({ path: path.join(SHOTS, '01-เข้าสู่ระบบ.png') });
 
   // ---------- สมัครสมาชิก (รหัสเชิญผิด แล้วถูก) ----------
@@ -102,6 +120,12 @@ let mock = null;
   check('สมัครแล้วเข้าหน้าบันทึกผล (โลโก้ที่แถบบน)', !!(await page.$('.bar .brand .hlogo .hl-leaf')), await page.textContent('.brand-txt'));
   check('ช่องผู้ทดสอบแสดงโรงงาน / บริษัท', (await page.textContent('#whoFactory')) === FAC, await page.textContent('#whoFactory'));
   check('แสดงรุ่น Herbal ERP v1.6.84', /v1\.6\.84/.test(await page.textContent('#curVer')));
+  const tt = await page.$eval('#trainTop', a => ({ hidden: a.hidden, href: a.href, target: a.target }));
+  check('แถบบน: ปุ่มวิธีการบันทึก', !tt.hidden && tt.href === TRAIN_URL && tt.target === '_blank', tt.href);
+  const over = [];
+  for (const w of [1280, 820]) { await page.setViewportSize({ width: w, height: 900 }); await sleep(150); over.push(w + ':' + (await barFits(page, w))); }
+  await page.setViewportSize({ width: 1440, height: 900 });
+  check('แถบบนไม่ล้นจอเมื่อมีปุ่มวิธีการบันทึก (1280 / 820 px)', over.every(x => Number(x.split(':')[1]) <= 0), over.join(' · '));
   await sleep(400);
   await page.screenshot({ path: path.join(SHOTS, '02-หน้าบันทึกผล.png') });
 
@@ -115,6 +139,11 @@ let mock = null;
   await page.click(`#toc .it[data-code="${code}"]`);
   await page.waitForFunction(c => document.querySelector('#sheet h1 .code').textContent === c, code);
   check('เปิดข้อ ' + code, true, (await page.textContent('#sheet h1')).trim());
+  const tc = await page.$eval('#trainCase', a => ({ hidden: a.hidden, href: a.href }));
+  const [pop] = await Promise.all([page.waitForEvent('popup', { timeout: 15000 }), page.click('#trainCase')]);
+  await pop.waitForLoadState().catch(() => {});
+  const popUrl = pop.url(); await pop.close();
+  check('หน้าข้อทดสอบ: ปุ่มวิธีการบันทึกข้างชื่อข้อ ลิงก์ไปที่ #' + code + ' (เปิดแท็บใหม่)', !tc.hidden && tc.href === TRAIN_URL + '#' + code && popUrl === TRAIN_URL + '#' + code, popUrl);
   await page.click('#sheet label.ck.fail');
   await page.fill('#note', 'ทดสอบในเครื่อง: ระบบยอมให้บันทึกค่าเกินเกณฑ์ (ข้อความตัวอย่าง)');
   await page.press('#note', 'Tab');   // ออกจากช่องข้อความ = ส่งทันที (ไม่ต้องรอ 3 วินาที)
@@ -272,6 +301,25 @@ let mock = null;
   const barInfo = await phone.evaluate(() => [...document.querySelectorAll('.bar .in > *')].filter(e => e.offsetParent).map(e => (e.id || e.className) + ':' + Math.round(e.getBoundingClientRect().left) + '-' + Math.round(e.getBoundingClientRect().right)).join(' '));
   await phone.screenshot({ path: path.join(SHOTS, '06-มือถือ.png') });
   check('มือถือ 390 px ไม่มีแถบเลื่อนแนวนอน (เข้าสู่ระบบ / บันทึกผล)', wideLogin <= 0 && wideApp <= 0, `เกิน ${wideLogin} / ${wideApp} px · ${barInfo}`);
+
+  // ---------- ปิดปุ่มวิธีการบันทึกในแท็บ ตั้งค่า: ซ่อนทุกที่ ----------
+  const tCase = await phone.$eval('#trainCase', a => !a.hidden && /#/.test(a.href));
+  check('มือถือ: ปุ่มวิธีการบันทึกอยู่ที่หน้าข้อทดสอบ', tCase);
+  await post('/__set', { sheet: 'ตั้งค่า', row: tRow, col: 2, value: 'ปิด' });
+  await get('/__clearcache');   // จำลองว่าผ่านไป 1 นาที (แคชค่าตั้งค่า 60 วินาที)
+  const g1 = await get('/exec');
+  await phone.reload(); await phone.waitForSelector('#app:not([hidden])');
+  await phone.waitForFunction(() => document.getElementById('trainCase') && document.getElementById('trainCase').hidden && document.getElementById('trainTop').hidden, null, { timeout: 15000 }).catch(() => {});
+  const offApp = await phone.evaluate(() => ({ c: document.getElementById('trainCase').hidden, t: document.getElementById('trainTop').hidden }));
+  await phone.click('#logout'); await phone.waitForSelector('#loginForm:not([hidden])');
+  const offLogin = await phone.$eval('#trainLogin', a => a.hidden);
+  const fresh = await browser.newPage({ viewport: { width: 1440, height: 900 } });   // เครื่องใหม่ (ไม่มีค่าเก่าในเครื่อง)
+  await fresh.route('**/config.js', r => r.fulfill({ contentType: 'text/javascript', body: `window.SA_CONFIG = { API_URL: '${API}' };` }));
+  await fresh.goto(`http://127.0.0.1:${WEB_PORT}/`); await fresh.waitForSelector('#loginForm:not([hidden])'); await sleep(800);
+  const offFresh = await fresh.$eval('#trainLogin', a => a.hidden);
+  await fresh.screenshot({ path: path.join(SHOTS, '08-ปิดปุ่มวิธีการบันทึก.png') });
+  await fresh.close();
+  check('ปิดปุ่มในแท็บ ตั้งค่า: ซ่อนที่หน้าข้อทดสอบ แถบบน และหน้าเข้าสู่ระบบ', g1.train && g1.train.on === false && offApp.c && offApp.t && offLogin && offFresh, JSON.stringify({ get: g1.train, offApp, offLogin, offFresh }));
 
   check('ไม่มีข้อผิดพลาดในหน้าเว็บ', !errors.length, errors.slice(0, 3).join(' | '));
   await browser.close(); web.close(); mock.kill();
