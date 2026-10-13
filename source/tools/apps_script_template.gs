@@ -93,6 +93,16 @@ function setup() {
   users.hideColumns(COL.U.salt + 1, 2);
   users.getRange(2, COL.U.role + 1, 300, 1).setDataValidation(dv([ROLE.tester, ROLE.admin]));
   users.getRange(2, COL.U.status + 1, 300, 1).setDataValidation(dv(['ใช้งาน', 'ระงับ']));
+  // ครั้งเดียว (14 ต.ค. 2569 ผู้ใช้สั่ง): ตั้งรหัสผ่านชั่วคราว 123456 ให้บัญชีเหล่านี้ เข้าระบบด้วยรหัสนี้แล้วกลายเป็นรหัสผ่านจริง
+  const P1 = PropertiesService.getScriptProperties();
+  if (P1.getProperty('temp-pw-20261014') !== 'done') {
+    const want = ['renuherb2', 'renuherb3', 'renuherb4', 'renuherb5', 'renuherb6', 'renuherb7', 'kook'];
+    rowsOf(users, HEAD.USERS.length).forEach(function (r, i) {
+      if (want.indexOf(String(r[COL.U.user]).trim().toLowerCase()) >= 0) users.getRange(i + 2, COL.U.temp + 1).setValue("'123456");
+    });
+    CacheService.getScriptCache().remove('users');
+    P1.setProperty('temp-pw-20261014', 'done');
+  }
 
   const cs = mk(SH.CASES, HEAD.CASES, [60, 90, 150, 90, 320, 200, 240, 320, 240, 320, 90]);
   // ปุ่มตัวอย่างรายข้อ (เปิด/ปิด) — ชีตเดิมได้หัวคอลัมน์นี้เองครั้งแรก ช่องว่าง = เปิด
