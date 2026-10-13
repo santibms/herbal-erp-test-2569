@@ -278,6 +278,10 @@
   };
 
   // ======================================================================= เข้าหน้าบันทึกผล
+  function hashCode() { return decodeURIComponent(location.hash.slice(1)); }
+  window.addEventListener('hashchange', () => {
+    if (state && session && idxOf(hashCode()) >= 0) { state.code = hashCode(); render(); }
+  });
   async function enterApp(fresh, current, pre) {
     const u = session.user;
     state = Object.assign({ code: '', res: {}, current: { ver: '' }, serverCases: null }, store.get(KEY.state(u.username), {}));
@@ -287,6 +291,7 @@
     outbox = store.get(KEY.outbox(u.username), []);
     buildList(state.serverCases);
     if (idxOf(state.code) < 0) state.code = LIST[0].code;
+    if (idxOf(hashCode()) >= 0) state.code = hashCode();   // กลับมาจากหน้าวิธีการบันทึก: เปิดข้อนั้นเลย
     $('auth').hidden = true; $('app').hidden = false;
     $('uname').textContent = u.full; showWho(u);
     $('av').textContent = (u.full.replace(/^(นาย|นางสาว|นาง|ดร\.|ผศ\.|รศ\.)\s*/, '').trim().charAt(0) || '?');
@@ -309,6 +314,7 @@
       state.res = merged;
       buildList(state.serverCases);
       if (idxOf(state.code) < 0) state.code = LIST[0].code;
+      if (idxOf(hashCode()) >= 0) state.code = hashCode();   // กลับมาจากหน้าวิธีการบันทึก: เปิดข้อนั้นเลย
       persist(); $('notice').hidden = true;
       showWelcome(fresh, false); render();
     } catch (e) {
