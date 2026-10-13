@@ -36,9 +36,9 @@ const HEAD = {
   RESULTS: ['แก้ไขล่าสุด', 'ชื่อผู้ใช้', 'ผู้ทดสอบ', 'รหัสข้อ', 'ระบบ', 'ประเภท', 'โจทย์', 'ผล', 'ผลที่ได้จริง / ปัญหาที่พบ', 'ภาพแนบ', 'วันที่ทดสอบ', 'รุ่นโปรแกรม', 'โรงงาน / บริษัท'],
   LOG: ['เวลา', 'ชื่อผู้ใช้', 'ผู้ทดสอบ', 'รายการ', 'รหัสข้อ', 'ผลเดิม', 'ผลใหม่', 'ผลที่ได้จริง / ปัญหาที่พบ'],
   USERS: ['ชื่อผู้ใช้', 'ชื่อ-นามสกุล', 'หน่วยงาน', 'บทบาท', 'สถานะ', 'รหัสผ่านชั่วคราว', 'สมัครเมื่อ', 'เข้าระบบล่าสุด', 'salt', 'hash', 'โรงงาน / บริษัท'],
-  CASES: ['ลำดับ', 'รหัสข้อ', 'ระบบ', 'ประเภท', 'โจทย์', 'ช่วงเวลา', 'เมนู', 'ขั้นตอนทดสอบ (1 บรรทัดต่อ 1 ขั้น)', 'ข้อมูลทดสอบ', 'ผลที่คาดหวัง', 'แสดง'],
+  CASES: ['ลำดับ', 'รหัสข้อ', 'ระบบ', 'ประเภท', 'โจทย์', 'ช่วงเวลา', 'เมนู', 'ขั้นตอนทดสอบ (1 บรรทัดต่อ 1 ขั้น)', 'ข้อมูลทดสอบ', 'ผลที่คาดหวัง', 'แสดง', 'ปุ่มตัวอย่าง'],
 };
-const CC = { order: 0, code: 1, sys: 2, type: 3, task: 4, slot: 5, menu: 6, steps: 7, data: 8, expect: 9, show: 10 };
+const CC = { order: 0, code: 1, sys: 2, type: 3, task: 4, slot: 5, menu: 6, steps: 7, data: 8, expect: 9, show: 10, tb: 11 };
 const COL = { R: { t: 0, user: 1, full: 2, code: 3, v: 7, note: 8, img: 9, day: 10, ver: 11, factory: 12 },
               U: { user: 0, full: 1, org: 2, role: 3, status: 4, temp: 5, created: 6, last: 7, salt: 8, hash: 9, factory: 10 } };
 const ROLE = { tester: 'ผู้ทดสอบ', admin: 'ผู้ดูแล' };
@@ -95,6 +95,12 @@ function setup() {
   users.getRange(2, COL.U.status + 1, 300, 1).setDataValidation(dv(['ใช้งาน', 'ระงับ']));
 
   const cs = mk(SH.CASES, HEAD.CASES, [60, 90, 150, 90, 320, 200, 240, 320, 240, 320, 90]);
+  // ปุ่มตัวอย่างรายข้อ (เปิด/ปิด) — ชีตเดิมได้หัวคอลัมน์นี้เองครั้งแรก ช่องว่าง = เปิด
+  if (String(cs.getRange(1, CC.tb + 1).getValue()).trim() !== HEAD.CASES[CC.tb]) {
+    cs.getRange(1, CC.tb + 1).setValue(HEAD.CASES[CC.tb]).setFontWeight('bold').setBackground('#d6ebe7');
+    cs.setColumnWidth(CC.tb + 1, 110);
+  }
+  cs.getRange(2, CC.tb + 1, 500, 1).setDataValidation(dv(['เปิด', 'ปิด']));
   syncCases(cs);
   // ช่องเลือกสำหรับแถวที่แอดมินเพิ่มเอง (รวมชื่อระบบที่มีอยู่แล้วในแท็บ ไม่ให้แถวเดิมกลายเป็นค่าที่ไม่ถูกต้อง)
   const names = SYSTEM_NAMES.slice();
@@ -143,7 +149,7 @@ function syncCases(cs) {
     const vals = c.slice(1);                       // ระบบ ... ผลที่คาดหวัง (8 ช่อง)
     const cell = vals.map(function (v, k) { return k === 1 ? v : safe(v); });   // ประเภทเก็บค่าตรง (ใช้กับรายการตรวจสอบ)
     const f = at[c[0]];
-    if (!f) { add.push([++order, c[0]].concat(cell).concat(['แสดง'])); return; }
+    if (!f) { add.push([++order, c[0]].concat(cell).concat(['แสดง', 'เปิด'])); return; }
     const same = vals.every(function (v, k) { return unq(f.r[CC.sys + k]) === String(v); });
     if (!same) cs.getRange(f.row, CC.sys + 1, 1, cell.length).setValues([cell]);
   });
@@ -290,7 +296,7 @@ function caseListRaw() {
     .map(function (r) {
       return { code: String(r[CC.code]).trim(), sysName: unq(r[CC.sys]).trim(), type: String(r[CC.type]).trim() || 'Positive',
                task: unq(r[CC.task]), slot: unq(r[CC.slot]), menu: unq(r[CC.menu]), steps: unq(r[CC.steps]),
-               data: unq(r[CC.data]), expect: unq(r[CC.expect]), show: String(r[CC.show]).trim() !== 'ไม่แสดง' };
+               data: unq(r[CC.data]), expect: unq(r[CC.expect]), show: String(r[CC.show]).trim() !== 'ไม่แสดง', tb: String(r[CC.tb]).trim() !== 'ปิด' };
     });
 }
 function caseOf(code) {

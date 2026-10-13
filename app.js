@@ -121,6 +121,7 @@
   function buildList(serverCases) {
     const builtin = {}; BUILTIN.forEach(c => { builtin[c.code] = c; });
     const hidden = {}, extras = [];
+    NO_TRAIN = {}; (serverCases || []).forEach(s => { if (s && s.code && s.tb === false) NO_TRAIN[s.code] = true; });   // แท็บข้อทดสอบ ช่อง ปุ่มตัวอย่าง = ปิด
     (serverCases || []).forEach(s => {
       if (builtin[s.code]) { if (!s.show) hidden[s.code] = true; return; }
       if (!s.show || !s.code) return;
@@ -210,8 +211,8 @@
   const trainOn = () => !!(TRAIN && TRAIN.on && /^https?:\/\//.test(TRAIN.url || ''));
   const trainHref = code => String(TRAIN.url).replace(/#.*$/, '') + (code ? '#' + encodeURIComponent(code) : '');
   // ข้อที่มีตัวอย่าง = codes.json ของเว็บตัวอย่าง · ปุ่มในหน้าข้อขึ้นเฉพาะข้อที่มี และรายการข้อมีไอคอน 📖
-  let TRAIN_CODES = null;
-  const hasEx = code => trainOn() && !!TRAIN_CODES && TRAIN_CODES.has(code);
+  let TRAIN_CODES = null, NO_TRAIN = {};
+  const hasEx = code => trainOn() && !!TRAIN_CODES && TRAIN_CODES.has(code) && !NO_TRAIN[code];
   function loadTrainCodes() {
     if (!trainOn() || TRAIN_CODES) return;
     fetch(trainHref('') + 'codes.json', { cache: 'no-store' }).then(r => r.json())
@@ -222,7 +223,7 @@
     loadTrainCodes();
     ['trainTop', 'trainLogin', 'trainCase'].forEach(id => {
       const a = $(id); if (!a) return;
-      a.hidden = !on || (id === 'trainCase' && !hasEx(a.dataset.code));
+      a.hidden = id === 'trainLogin' || !on || (id === 'trainCase' && !hasEx(a.dataset.code));   // หน้าเข้าระบบไม่มีปุ่มตัวอย่าง
       if (on) a.href = trainHref(a.dataset.code || ''); else a.removeAttribute('href');
     });
   }
