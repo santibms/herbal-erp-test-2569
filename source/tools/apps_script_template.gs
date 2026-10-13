@@ -101,6 +101,17 @@ function setup() {
     cs.setColumnWidth(CC.tb + 1, 110);
   }
   cs.getRange(2, CC.tb + 1, 500, 1).setDataValidation(dv(['เปิด', 'ปิด']));
+  // ช่องที่ยังว่าง: ข้อที่มีตัวอย่างแล้ว = เปิด · ข้อที่ยังไม่มี = ปิด (ค่าที่ผู้ดูแลตั้งไว้แล้วไม่ถูกแตะ)
+  const EX_CODES = ['PUR-04', 'PUR-05', 'QC-01', 'QC-02', 'QC-03', 'PRM-01', 'PRM-04', 'GMP-01', 'GMP-05',
+                    'HR-01', 'HR-02', 'SAL-02', 'SAL-05', 'ACC-02', 'ACC-04', 'CST-01'];
+  const crow = rowsOf(cs, HEAD.CASES.length);
+  if (crow.length) {
+    const col = crow.map(function (r) {
+      const v = String(r[CC.tb]).trim(), code = String(r[CC.code]).trim();
+      return [v || !code ? v : (EX_CODES.indexOf(code) >= 0 ? 'เปิด' : 'ปิด')];
+    });
+    cs.getRange(2, CC.tb + 1, col.length, 1).setValues(col);
+  }
   syncCases(cs);
   // ช่องเลือกสำหรับแถวที่แอดมินเพิ่มเอง (รวมชื่อระบบที่มีอยู่แล้วในแท็บ ไม่ให้แถวเดิมกลายเป็นค่าที่ไม่ถูกต้อง)
   const names = SYSTEM_NAMES.slice();
