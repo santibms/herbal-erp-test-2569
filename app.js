@@ -209,11 +209,20 @@
   let TRAIN = store.get(TRAIN_KEY, null), trainAt = 0;
   const trainOn = () => !!(TRAIN && TRAIN.on && /^https?:\/\//.test(TRAIN.url || ''));
   const trainHref = code => String(TRAIN.url).replace(/#.*$/, '') + (code ? '#' + encodeURIComponent(code) : '');
+  // ข้อที่มีตัวอย่าง = codes.json ของเว็บตัวอย่าง · ปุ่มในหน้าข้อขึ้นเฉพาะข้อที่มี และรายการข้อมีไอคอน 📖
+  let TRAIN_CODES = null;
+  const hasEx = code => trainOn() && !!TRAIN_CODES && TRAIN_CODES.has(code);
+  function loadTrainCodes() {
+    if (!trainOn() || TRAIN_CODES) return;
+    fetch(trainHref('') + 'codes.json', { cache: 'no-store' }).then(r => r.json())
+      .then(a => { TRAIN_CODES = new Set(a); applyTrain(); if (state && session) renderToc(); }).catch(() => {});
+  }
   function applyTrain() {
     const on = trainOn();
+    loadTrainCodes();
     ['trainTop', 'trainLogin', 'trainCase'].forEach(id => {
       const a = $(id); if (!a) return;
-      a.hidden = !on;
+      a.hidden = !on || (id === 'trainCase' && !hasEx(a.dataset.code));
       if (on) a.href = trainHref(a.dataset.code || ''); else a.removeAttribute('href');
     });
   }
@@ -411,7 +420,7 @@
         + (filtering ? `<span class="gm">${shown.length} ข้อ</span>` : '') + `<span class="gc">${done}/${items.length}</span></button>`
         + (open ? shown.map(x => {
           const r = state.res[x.code] || {};
-          return `<button class="it" data-code="${esc(x.code)}" aria-current="${x === c}" title="${esc(x.task)}"><span class="dot ${r.v || ''} ${pending(x.code) ? 'pend' : ''}"></span><span class="c">${esc(x.code)}</span><span class="tk">${esc(x.task)}${r.v ? `<small class="rs ${r.v}">${SHORT[r.v]}${r.day ? ' · ' + esc(r.day) : ''}${r.ver ? ' · ' + esc(r.ver) : ''}</small>` : ''}</span></button>`;
+          return `<button class="it" data-code="${esc(x.code)}" aria-current="${x === c}" title="${esc(x.task)}"><span class="dot ${r.v || ''} ${pending(x.code) ? 'pend' : ''}"></span><span class="c">${esc(x.code)}${hasEx(x.code) ? ' <span class="ex" title="มีตัวอย่างวิธีการบันทึก">📖</span>' : ''}</span><span class="tk">${esc(x.task)}${r.v ? `<small class="rs ${r.v}">${SHORT[r.v]}${r.day ? ' · ' + esc(r.day) : ''}${r.ver ? ' · ' + esc(r.ver) : ''}</small>` : ''}</span></button>`;
         }).join('') : '');
     }).join('');
     $('toc').innerHTML = html || '<div class="muted" style="padding:10px 14px">ไม่พบข้อที่ตรงกับเงื่อนไข</div>';
