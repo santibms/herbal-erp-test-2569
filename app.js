@@ -290,6 +290,8 @@
   // ======================================================================= เข้าหน้าบันทึกผล
   // เงื่อนไขก่อนเริ่ม: 1 บรรทัดต่อ 1 ข้อ · บรรทัดที่ไม่ขึ้นต้นด้วย • เป็นหัวข้อ (ตัวหนา)
   function preHtml(t) { return String(t).split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => /^[•\d]/.test(l) ? `<div class="pre-li">${esc(l)}</div>` : `<div class="pre-h">${esc(l)}</div>`).join(''); }
+  // ข้อความยาวที่คั่นด้วย " · " แสดง 1 เรื่องต่อ 1 บรรทัด อ่านง่ายกว่าย่อหน้ายาว
+  function dotLines(t) { const parts = String(t || '').split(/\s+·\s+/).map(x => x.trim()).filter(Boolean); return parts.length > 1 ? parts.map(x => `<div class="pre-li">• ${esc(x)}</div>`).join('') : esc(t); }
   function hashCode() { return decodeURIComponent(location.hash.slice(1)); }
   window.addEventListener('hashchange', () => {
     if (state && session && idxOf(hashCode()) >= 0) { state.code = hashCode(); render(); }
@@ -462,15 +464,15 @@
       ${c.img ? `<figure><img src="${esc(c.img)}" alt="${esc(c.shotCap)}" data-zoom="1" loading="lazy"><figcaption>${ICON.zoom} ${esc(c.shotCap)} · คลิกที่ภาพเพื่อขยาย</figcaption></figure>` : ''}
       <table class="doc"><tbody>
         ${row('ประเภทโจทย์', `<div class="typ"><span class="tag ${c.type}">${esc(c.type)}</span><span>${esc(ti.what)}</span></div>`)}
-        ${c.dept || c.role ? row('ฝ่าย / ผู้ทำรายการ', esc([c.dept, c.role].filter(Boolean).join(' · '))) : ''}
+        ${c.dept || c.role ? row('ฝ่าย / ผู้ทำรายการ', dotLines([c.dept, c.role].filter(Boolean).join(' · '))) : ''}
         ${c.dependsOn ? row('ทำต่อจากข้อ', esc(c.dependsOn)) : ''}
         ${row('เมนู', esc(c.menu))}
         ${c.pre ? row('เงื่อนไขก่อนเริ่ม', preHtml(c.pre)) : ''}
         ${row(c.type === 'E2E' ? 'ขั้นตอนทดสอบ (ทำต่อเนื่องทั้งวงจร)' : 'ขั้นตอนทดสอบ', `<ol>${c.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol>`)}
-        ${c.data && c.data !== '-' ? row('ข้อมูลทดสอบ (ตามโจทย์)', esc(c.data)) : ''}
+        ${c.data && c.data !== '-' ? row('ข้อมูลทดสอบ (ตามโจทย์)', dotLines(c.data)) : ''}
         ${c.sample.length ? row(sampleHead(c), c.sample.map(([k, v]) => `<b>${esc(k)}:</b> ${esc(v)}`).join('<br>')) : ''}
-        ${row('ผลที่คาดหวัง', esc(c.expect))}
-        ${c.note ? row('ข้อควรทราบ', esc(c.note)) : ''}
+        ${row('ผลที่คาดหวัง', dotLines(c.expect))}
+        ${c.note ? row('ข้อควรทราบ', dotLines(c.note)) : ''}
       </tbody></table>
       ${c.items ? `<div class="cap">รายการในเอกสาร (${esc(c.code)})</div>${itemsT(c.items)}` : ''}
       ${c.jes.map(j => `<div class="cap">ตัวอย่างการบันทึกบัญชี: ${esc(j.title)}</div>${jeT(j)}`).join('')}
@@ -897,13 +899,13 @@
         <table>
           ${row('ประเภทโจทย์', `<span class="tag ${c.type}">${esc(c.type)}</span> ${esc(ti.what)}${c.core ? ' · โจทย์หลัก (ทำใน Zoom)' : ''}`)}
           ${row('ช่วงเวลา', esc(c.slot))}${row('เมนู', esc(c.menu))}
-          ${c.dept || c.role ? row('ฝ่าย / ผู้ทำรายการ', esc([c.dept, c.role].filter(Boolean).join(' · '))) : ''}
+          ${c.dept || c.role ? row('ฝ่าย / ผู้ทำรายการ', dotLines([c.dept, c.role].filter(Boolean).join(' · '))) : ''}
           ${c.dependsOn ? row('ทำต่อจากข้อ', esc(c.dependsOn)) : ''}
           ${c.pre ? row('เงื่อนไขก่อนเริ่ม', preHtml(c.pre)) : ''}
           ${row('ขั้นตอนทดสอบ', `<ol>${c.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol>`)}
-          ${c.data && c.data !== '-' ? row('ข้อมูลทดสอบ (ตามโจทย์)', esc(c.data)) : ''}
+          ${c.data && c.data !== '-' ? row('ข้อมูลทดสอบ (ตามโจทย์)', dotLines(c.data)) : ''}
           ${c.sample.length ? row(sampleHead(c), c.sample.map(([kk, v]) => `<b>${esc(kk)}:</b> ${esc(v)}`).join('<br>')) : ''}
-          ${row('ผลที่คาดหวัง', esc(c.expect))}${c.note ? row('ข้อควรทราบ', esc(c.note)) : ''}
+          ${row('ผลที่คาดหวัง', dotLines(c.expect))}${c.note ? row('ข้อควรทราบ', dotLines(c.note)) : ''}
         </table>
         ${c.items ? blk(`รายการในเอกสาร (${esc(c.code)})`, itemsT(c.items).replace(/<\/?div[^>]*>/g, '')) : ''}
         ${c.jes.map(j => blk(`ตัวอย่างการบันทึกบัญชี ${esc(c.code)}: ${esc(j.title)}`, jeT(j).replace(/<\/?div[^>]*>/g, ''))).join('')}
