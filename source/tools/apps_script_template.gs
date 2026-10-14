@@ -33,13 +33,13 @@
 
 const SH = { RESULTS: 'ผลทดสอบ', LOG: 'ประวัติการบันทึก', SUMMARY: 'สรุป', USERS: 'ผู้ทดสอบ', CASES: 'ข้อทดสอบ', SETTINGS: 'ตั้งค่า', ANSWERS: 'คำชี้แจงผู้ดูแล' };
 const HEAD = {
-  RESULTS: ['แก้ไขล่าสุด', 'ชื่อผู้ใช้', 'ผู้ทดสอบ', 'รหัสข้อ', 'ระบบ', 'ประเภท', 'โจทย์', 'ผล', 'ผลที่ได้จริง / ปัญหาที่พบ', 'ภาพแนบ', 'วันที่ทดสอบ', 'รุ่นโปรแกรม', 'โรงงาน / บริษัท'],
+  RESULTS: ['แก้ไขล่าสุด', 'ชื่อผู้ใช้', 'ผู้ทดสอบ', 'รหัสข้อ', 'ระบบ', 'ประเภท', 'โจทย์', 'ผล', 'ผลที่ได้จริง / ปัญหาที่พบ', 'ภาพแนบ', 'วันที่ทดสอบ', 'รุ่นโปรแกรม', 'โรงงาน / บริษัท', 'ชุดทดสอบที่ใช้'],
   LOG: ['เวลา', 'ชื่อผู้ใช้', 'ผู้ทดสอบ', 'รายการ', 'รหัสข้อ', 'ผลเดิม', 'ผลใหม่', 'ผลที่ได้จริง / ปัญหาที่พบ'],
   USERS: ['ชื่อผู้ใช้', 'ชื่อ-นามสกุล', 'หน่วยงาน', 'บทบาท', 'สถานะ', 'รหัสผ่านชั่วคราว', 'สมัครเมื่อ', 'เข้าระบบล่าสุด', 'salt', 'hash', 'โรงงาน / บริษัท'],
   CASES: ['ลำดับ', 'รหัสข้อ', 'ระบบ', 'ประเภท', 'โจทย์', 'ช่วงเวลา', 'เมนู', 'ขั้นตอนทดสอบ (1 บรรทัดต่อ 1 ขั้น)', 'ข้อมูลทดสอบ', 'ผลที่คาดหวัง', 'แสดง', 'ปุ่มตัวอย่าง'],
 };
 const CC = { order: 0, code: 1, sys: 2, type: 3, task: 4, slot: 5, menu: 6, steps: 7, data: 8, expect: 9, show: 10, tb: 11 };
-const COL = { R: { t: 0, user: 1, full: 2, code: 3, v: 7, note: 8, img: 9, day: 10, ver: 11, factory: 12 },
+const COL = { R: { t: 0, user: 1, full: 2, code: 3, v: 7, note: 8, img: 9, day: 10, ver: 11, factory: 12, dset: 13 },
               U: { user: 0, full: 1, org: 2, role: 3, status: 4, temp: 5, created: 6, last: 7, salt: 8, hash: 9, factory: 10 } };
 const ROLE = { tester: 'ผู้ทดสอบ', admin: 'ผู้ดูแล' };
 const LABEL = { pass: 'ผ่าน', fail: 'ไม่ผ่าน', block: 'ติดปัญหา' };
@@ -470,7 +470,7 @@ function meData(user) {
   rowsOf(sheet(SH.RESULTS), HEAD.RESULTS.length).forEach(function (r) {
     if (r[COL.R.user] !== user.username) return;
     results[r[COL.R.code]] = { v: keyOf(r[COL.R.v]), note: unq(r[COL.R.note]), t: ms(r[COL.R.t]),
-                               img: imgsOf(r[COL.R.img]), day: unq(r[COL.R.day]), ver: unq(r[COL.R.ver]) };
+                               img: imgsOf(r[COL.R.img]), day: unq(r[COL.R.day]), ver: unq(r[COL.R.ver]), dset: unq(r[COL.R.dset]) };
   });
   const answers = answersOf().filter(function (a) { return a.user === user.username; });   // คำชี้แจงของผู้ดูแล (ใช้ในฉบับพิมพ์)
   return { ok: true, user: user, results: results, cases: caseList(), current: current(), answers: answers };
@@ -492,6 +492,7 @@ function save(req) {
   const v = str(req.v, 10);
   if (v && !LABEL[v]) fail('INPUT', 'ผลทดสอบไม่ถูกต้อง');
   const note = str(req.note, 5000), day = str(req.day, 30), ver = str(req.ver, 40);
+  const dset = str(req.dset, 60);   // ชุดข้อมูลทดสอบที่ผู้ทดสอบเลือก (ว่าง = ยังไม่ได้เลือก)
   const cur = current(), t = now();
   // seq = เวลาที่ผู้ทดสอบแก้ข้อนี้ (จากเครื่องเดียวกัน) · คำขอเก่าที่มาถึงช้ากว่าคำขอใหม่ จะไม่เขียนทับผลใหม่
   const seq = Number(req.seq) || 0, sk = 'sq_' + str(req.token, 100).slice(0, 24) + '_' + code;
@@ -503,7 +504,7 @@ function save(req) {
     }
     const sh = sheet(SH.RESULTS), f = findResult(sh, user.username, code);
     const oldV = f ? String(f.r[COL.R.v]) : '', oldNote = f ? unq(f.r[COL.R.note]) : '';
-    const row = [t, user.username, safe(user.full), code, c.sysName, c.type, safe(c.task), LABEL[v] || '', safe(note), f ? f.r[COL.R.img] : '', safe(day), safe(ver), safe(user.factory)];
+    const row = [t, user.username, safe(user.full), code, c.sysName, c.type, safe(c.task), LABEL[v] || '', safe(note), f ? f.r[COL.R.img] : '', safe(day), safe(ver), safe(user.factory), safe(dset)];
     if (f) sh.getRange(f.row, 1, 1, row.length).setValues([row]); else sh.appendRow(row);
     return { isNew: !f, oldV: oldV, oldNote: oldNote };
   });
@@ -573,7 +574,7 @@ function dashboard(req) {
   });
   const results = rowsOf(sheet(SH.RESULTS), HEAD.RESULTS.length).filter(function (r) { return r[COL.R.user]; }).map(function (r) {
     return { user: String(r[COL.R.user]), code: String(r[COL.R.code]), v: keyOf(r[COL.R.v]), note: unq(r[COL.R.note]), t: ms(r[COL.R.t]),
-             img: imgsOf(r[COL.R.img]), day: unq(r[COL.R.day]), ver: unq(r[COL.R.ver]), factory: unq(r[COL.R.factory]) };
+             img: imgsOf(r[COL.R.img]), day: unq(r[COL.R.day]), ver: unq(r[COL.R.ver]), factory: unq(r[COL.R.factory]), dset: unq(r[COL.R.dset]) };
   });
   const lg = sheet(SH.LOG), n = lg.getLastRow(), k = Math.min(50, Math.max(0, n - 1));
   const log = k ? lg.getRange(n - k + 1, 1, k, HEAD.LOG.length).getValues().reverse().map(function (r) {

@@ -292,6 +292,8 @@
   function preHtml(t) { return String(t).split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => /^[•\d]/.test(l) ? `<div class="pre-li">${esc(l)}</div>` : `<div class="pre-h">${esc(l)}</div>`).join(''); }
   // ข้อความยาวที่คั่นด้วย " · " แสดง 1 เรื่องต่อ 1 บรรทัด อ่านง่ายกว่าย่อหน้ายาว
   function dotLines(t) { const parts = String(t || '').split(/\s+·\s+/).map(x => x.trim()).filter(Boolean); return parts.length > 1 ? parts.map(x => `<div class="pre-li">• ${esc(x)}</div>`).join('') : esc(t); }
+  // ชุดข้อมูลทดสอบที่เลือกได้ในหน้าบันทึกผล (เก็บลงคอลัมน์ ชุดทดสอบที่ใช้ ในแท็บ ผลทดสอบ)
+  const DSET_OPTS = [''].concat([1, 2, 3, 4, 5, 6, 7, 8].map(n => 'ชุดที่ ' + n), ['ไม่ได้ใช้ชุดทดสอบ (สร้างข้อมูลใหม่เอง)']);
   function hashCode() { return decodeURIComponent(location.hash.slice(1)); }
   window.addEventListener('hashchange', () => {
     if (state && session && idxOf(hashCode()) >= 0) { state.code = hashCode(); render(); }
@@ -478,6 +480,7 @@
       ${c.jes.map(j => `<div class="cap">ตัวอย่างการบันทึกบัญชี: ${esc(j.title)}</div>${jeT(j)}`).join('')}
       <section class="form" id="form"><div class="cap">บันทึกผลการทดสอบ ${esc(c.code)}</div>
         <table class="rt"><tbody>
+          ${row('ชุดข้อมูลทดสอบที่ใช้', `<select id="dset" aria-label="ชุดข้อมูลทดสอบที่ใช้">${DSET_OPTS.map(o => `<option value="${esc(o)}"${(res(c.code).dset || '') === o ? ' selected' : ''}>${esc(o || '— ยังไม่ได้เลือก —')}</option>`).join('')}</select>`)}
           ${row('ผลทดสอบ', `<div class="checks" role="radiogroup" aria-label="ผลทดสอบ">${['pass', 'fail', 'block'].map(v =>
             `<label class="ck ${v} ${r.v === v ? 'on' : ''}"><input type="radio" name="res" value="${v}" ${r.v === v ? 'checked' : ''}><span class="box">${ICON.check}</span>${LABEL[v]}</label>`).join('')}</div>
             <div class="hint" style="margin-top:4px"><b>ผ่าน</b> = ${esc(ti.pass)} · <b>ไม่ผ่าน</b> = ${esc(ti.fail)} · <b>ติดปัญหา</b> = ${esc(BLOCK_INFO)}</div>`)}
@@ -510,6 +513,7 @@
     };
     $('note').onblur = () => { if (noteTimer) { clearTimeout(noteTimer); noteTimer = 0; const rr = state.res[c.code]; if (rr && !pending(c.code) && rr._dirty) queueSave(c.code); } };
     if ($('day')) $('day').onchange = e => { res(c.code).day = e.target.value; queueSave(c.code); };
+    if ($('dset')) $('dset').onchange = e => { res(c.code).dset = e.target.value; stamp(c.code); queueSave(c.code); };
     $('ver').onchange = e => { res(c.code).ver = e.target.value.trim(); queueSave(c.code); };
     $('file').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) attach(c.code, f); };
   }
@@ -540,7 +544,7 @@
   function queueSave(code) {
     const r = res(code); delete r._dirty;
     outbox = outbox.filter(o => o.code !== code);
-    outbox.push({ code, v: r.v || '', note: r.note || '', day: r.day || '', ver: r.ver || '', seq: Date.now() });
+    outbox.push({ code, v: r.v || '', note: r.note || '', day: r.day || '', ver: r.ver || '', dset: r.dset || '', seq: Date.now() });
     persist(); paintStatus(code); renderNet(); renderToc();
     flush();
   }
