@@ -519,7 +519,8 @@ function retest(req) {
     const ar = archiveSheet(), t = now(), rows = [];
     rowsOf(sh, HEAD.RESULTS.length).forEach(function (r, i) { if (r[COL.R.user] === user.username && r[COL.R.code] === code) rows.push({ i: i + 2, r: r }); });
     rows.forEach(function (x) { ar.appendRow(x.r.concat([t])); });
-    rows.slice().reverse().forEach(function (x) { sh.deleteRow(x.i); });
+    // ล้างค่าในแถวเดิม (ไม่ลบแถว: แท็บผลทดสอบลบแถวด้วยสคริปต์ไม่ได้จริง จำนวนแถวไม่ลด) แถวว่างไม่ถูกนับในหน้าเว็บและสรุป
+    rows.forEach(function (x) { sh.getRange(x.i, 1, 1, HEAD.RESULTS.length).clearContent(); });
     log(user.username, user.full, 'ทดสอบซ้ำกับรุ่นใหม่ (ย้ายผลเดิมไปแท็บ ผลรุ่นก่อน)', code, String(f.r[COL.R.v]), '', 'รุ่นเดิม ' + unq(f.r[COL.R.ver]));
     return { ok: true, prev: { v: keyOf(f.r[COL.R.v]), ver: unq(f.r[COL.R.ver]), day: unq(f.r[COL.R.day]) } };
   });
