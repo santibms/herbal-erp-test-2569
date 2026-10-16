@@ -515,9 +515,11 @@ function retest(req) {
   return withLock(function () {
     const sh = sheet(SH.RESULTS), f = findResult(sh, user.username, code);
     if (!f || !String(f.r[COL.R.v]).trim()) fail('INPUT', 'ข้อนี้ยังไม่มีผลที่บันทึกไว้');
-    const row = sh.getRange(f.row, 1, 1, HEAD.RESULTS.length).getValues()[0];
-    archiveSheet().appendRow(row.concat([now()]));
-    sh.deleteRow(f.row);
+    // ทุกแถวของผู้ทดสอบ + ข้อนี้ (รวมแถวซ้ำที่อาจค้างจากก่อนหน้า) ย้ายไปผลรุ่นก่อนตามลำดับเดิม แล้วลบจากล่างขึ้นบน
+    const ar = archiveSheet(), t = now(), rows = [];
+    rowsOf(sh, HEAD.RESULTS.length).forEach(function (r, i) { if (r[COL.R.user] === user.username && r[COL.R.code] === code) rows.push({ i: i + 2, r: r }); });
+    rows.forEach(function (x) { ar.appendRow(x.r.concat([t])); });
+    rows.slice().reverse().forEach(function (x) { sh.deleteRow(x.i); });
     log(user.username, user.full, 'ทดสอบซ้ำกับรุ่นใหม่ (ย้ายผลเดิมไปแท็บ ผลรุ่นก่อน)', code, String(f.r[COL.R.v]), '', 'รุ่นเดิม ' + unq(f.r[COL.R.ver]));
     return { ok: true, prev: { v: keyOf(f.r[COL.R.v]), ver: unq(f.r[COL.R.ver]), day: unq(f.r[COL.R.day]) } };
   });
@@ -528,7 +530,7 @@ function findResult(sh, user, code) {
   if (n < 2) return null;
   const keys = sh.getRange(2, COL.R.user + 1, n - 1, COL.R.code - COL.R.user + 1).getValues();
   const last = COL.R.code - COL.R.user;
-  for (let i = 0; i < keys.length; i++) {
+  for (let i = keys.length - 1; i >= 0; i--) {   // แถวล่างสุด = แถวที่หน้าเว็บแสดง
     if (keys[i][0] === user && keys[i][last] === code) return { row: i + 2, r: sh.getRange(i + 2, 1, 1, HEAD.RESULTS.length).getValues()[0] };
   }
   return null;
