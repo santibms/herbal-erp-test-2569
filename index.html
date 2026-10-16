@@ -116,6 +116,7 @@
   .sh-hd .core { color: var(--brand-d); background: var(--soft); padding: 0 6px; border-radius: 4px; font-weight: 600; white-space: nowrap; }
   .who .sut { margin-top: 6px; font-size: 13px; color: var(--muted); line-height: 1.5; }
   .who .sut b { color: var(--ink); font-weight: 600; }
+  .who { position: relative; } .editbtn { all: unset; cursor: pointer; position: absolute; top: 8px; right: 8px; width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; color: var(--brand-d); } .editbtn:hover { background: var(--soft); }
   .who .fac { font-weight: 600; color: var(--brand-d); font-size: 14px; }
   .linkbtn { all: unset; cursor: pointer; color: var(--brand-d); font-size: 13px; text-decoration: underline; text-underline-offset: 3px; padding: 2px 0; }
   .dsel { border: 1px solid var(--line); border-radius: 8px; padding: 0 10px; height: 42px; background: #fff; font-size: 14.5px; max-width: 260px; }
@@ -452,7 +453,7 @@
     <aside class="side" id="side" aria-label="ข้อทดสอบ">
       <div class="who">
         <div class="k">ผู้ทดสอบ</div><div class="name" id="whoName"></div><div class="fac" id="whoFactory"></div><div class="muted" id="whoOrg"></div>
-        <button class="linkbtn" id="profBtn" type="button">แก้ไขโรงงาน / หน่วยงาน</button>
+        <button class="editbtn" id="profBtn" type="button" title="แก้ไขโรงงาน / หน่วยงาน" aria-label="แก้ไขโรงงาน / หน่วยงาน"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
         <div class="k" style="margin-top:6px">รุ่นโปรแกรมปัจจุบัน</div><div class="ver"><span class="vk">Herbal ERP</span> <span id="curVer">-</span></div>
         <div class="sut">ระบบที่ทดสอบ: <b>ระบบ Herbal ERP สำหรับทดสอบ</b> (ลิงก์ส่งให้ทางไลน์/อีเมล)</div>
       </div>
