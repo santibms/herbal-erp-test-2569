@@ -42,6 +42,20 @@
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   // ชื่อปุ่ม/ช่องบนหน้าจอที่อยู่ในเครื่องหมายคำพูด แสดงเป็นป้ายที่ไม่ตัดกลางบรรทัด (16 ต.ค. 2569: "ผู้ / ขายที่ได้รับ…" ตกบรรทัดแล้วอ่านยาก)
   const ui = s => esc(s).replace(/&quot;(.{1,80}?)&quot;/g, '<span class="ui">$1</span>');
+  // ขั้นตอนที่มีหลายการกระทำ: แยกบรรทัดละ 1 การกระทำ ก่อนคำสั่งที่ตามด้วยชื่อปุ่ม/ช่อง เช่น กด "…" / กรอก "…" / แล้วกด "…"
+  // (16 ต.ค. 2569: ประโยคยาวตกบรรทัดกลางคำสั่ง อ่านยาก) ข้อความในเครื่องหมายคำพูดไม่ถูกแยก
+  const ACT = /(\s|^)((?:แล้ว|และ)?(?:กด|กรอก|เลือก|ติ๊ก|ใส่|พิมพ์|ลอง(?:กด|เลือก|กรอก)?)\s*)$/;
+  function stepHtml(t) {
+    const parts = String(t || '').split(/("[^"]*")/), lines = [''];
+    parts.forEach((x, i) => {
+      if (i % 2) { lines[lines.length - 1] += x; return; }
+      const m = ACT.exec(x), before = m ? x.slice(0, m.index) : '';
+      if (m && (lines[lines.length - 1] + before).trim()) { lines[lines.length - 1] += before; lines.push(m[2]); }
+      else lines[lines.length - 1] += x;
+    });
+    const ls = lines.map(x => x.trim()).filter(Boolean);
+    return ls.length > 1 ? ls.map(x => `<span class="sl">${ui(x)}</span>`).join('') : ui(t);
+  }
   const store = {
     get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
@@ -471,7 +485,7 @@
         ${c.dependsOn ? row('ทำต่อจากข้อ', esc(c.dependsOn)) : ''}
         ${row('เมนู', esc(c.menu))}
         ${c.pre ? row('เงื่อนไขก่อนเริ่ม', preHtml(c.pre)) : ''}
-        ${row(c.type === 'E2E' ? 'ขั้นตอนทดสอบ (ทำต่อเนื่องทั้งวงจร)' : 'ขั้นตอนทดสอบ', `<ol>${c.steps.map(s => `<li>${ui(s)}</li>`).join('')}</ol>`)}
+        ${row(c.type === 'E2E' ? 'ขั้นตอนทดสอบ (ทำต่อเนื่องทั้งวงจร)' : 'ขั้นตอนทดสอบ', `<ol>${c.steps.map(s => `<li>${stepHtml(s)}</li>`).join('')}</ol>`)}
         ${c.data && c.data !== '-' ? row('ข้อมูลทดสอบ (ตามโจทย์)', dotLines(c.data)) : ''}
         ${c.sample.length ? row(sampleHead(c), c.sample.map(([k, v]) => `<b>${esc(k)}:</b> ${esc(v)}`).join('<br>')) : ''}
         ${row('ผลที่คาดหวัง', dotLines(c.expect))}
@@ -533,12 +547,21 @@
     else if (r.t) setSaved('ok', '✓ บันทึกเข้าระบบแล้ว ' + fmtTime(r.t) + ' น. · วันที่ ' + (r.day || '-') + ' · รุ่น ' + (r.ver || '-'));
     else setSaved('', 'ผลจะบันทึกเข้าระบบอัตโนมัติเมื่อเลือกผลหรือพิมพ์ข้อความ');
   }
+  // ภาพแนบ: ภาพย่อเรียงกัน มีหมายเลขและปุ่ม ✕ ที่มุม (16 ต.ค. 2569: ลิงก์ยาว "ภาพที่ 1 (Google Drive) ✕ ลบ" ตกบรรทัด เปลืองที่)
+  // ภาพที่แนบในรอบนี้ใช้ภาพในเครื่อง ภาพเก่าใช้ภาพย่อจาก Google Drive ถ้าโหลดไม่ได้แสดงไอคอนแทน
+  const driveId = u => (/[-\w]{25,}/.exec(u) || [])[0] || '';
   function renderAtts(code) {
     const el = $('atts'); if (!el) return;
     const r = state.res[code] || {}, loc = localShots[code] || [];
-    el.innerHTML = loc.map(s => `<img src="${s.src}" alt="ภาพที่แนบ" data-zoom="1" title="${esc(s.state)}">`).join('')
-      + (r.img || []).map((u, k) => `<span class="att"><a href="${esc(u)}" target="_blank" rel="noopener">ภาพที่ ${k + 1} (Google Drive)</a><button type="button" class="delimg" data-u="${esc(u)}" title="ลบภาพที่ ${k + 1}">✕ ลบ</button></span>`).join(' · ')
-      + loc.filter(s => s.state !== 'ok').map(s => `<span class="hint">${esc(s.state)}</span>`).join('');
+    const card = (u, k) => {
+      const mine = loc.find(s => s.url === u), id = driveId(u);
+      const src = mine ? mine.src : (id ? 'https://drive.google.com/thumbnail?id=' + id + '&sz=w240' : '');
+      return `<span class="shot"><a href="${esc(u)}" target="_blank" rel="noopener" title="เปิดภาพที่ ${k + 1}">`
+        + (src ? `<img src="${esc(src)}" alt="ภาพที่ ${k + 1}" onerror="this.replaceWith(Object.assign(document.createElement('i'),{className:'noimg',textContent:'🖼'}))">` : '<i class="noimg">🖼</i>')
+        + `</a><small>ภาพ ${k + 1}</small><button type="button" class="delimg" data-u="${esc(u)}" title="ลบภาพที่ ${k + 1}" aria-label="ลบภาพที่ ${k + 1}">✕</button></span>`;
+    };
+    el.innerHTML = (r.img || []).map(card).join('')
+      + loc.filter(s => s.state !== 'ok').map(s => `<span class="shot up"><img src="${s.src}" alt=""><small>${esc(s.state)}</small></span>`).join('');
     el.querySelectorAll('.delimg').forEach(b => b.onclick = () => delImg(code, b.dataset.u, b));
   }
   // ลบภาพที่แนบผิด: ลบออกจากผลของข้อนี้ ไฟล์ใน Google Drive ย้ายไปถังขยะ
@@ -922,7 +945,7 @@
           ${c.dept || c.role ? row('ฝ่าย / ผู้ทำรายการ', dotLines([c.dept, c.role].filter(Boolean).join(' · '))) : ''}
           ${c.dependsOn ? row('ทำต่อจากข้อ', esc(c.dependsOn)) : ''}
           ${c.pre ? row('เงื่อนไขก่อนเริ่ม', preHtml(c.pre)) : ''}
-          ${row('ขั้นตอนทดสอบ', `<ol>${c.steps.map(s => `<li>${ui(s)}</li>`).join('')}</ol>`)}
+          ${row('ขั้นตอนทดสอบ', `<ol>${c.steps.map(s => `<li>${stepHtml(s)}</li>`).join('')}</ol>`)}
           ${c.data && c.data !== '-' ? row('ข้อมูลทดสอบ (ตามโจทย์)', dotLines(c.data)) : ''}
           ${c.sample.length ? row(sampleHead(c), c.sample.map(([kk, v]) => `<b>${esc(kk)}:</b> ${esc(v)}`).join('<br>')) : ''}
           ${row('ผลที่คาดหวัง', dotLines(c.expect))}${c.note ? row('ข้อควรทราบ', dotLines(c.note)) : ''}

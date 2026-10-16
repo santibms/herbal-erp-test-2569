@@ -144,7 +144,12 @@
   .toc .c { font-weight: 600; color: var(--brand-d); } .toc .tk { white-space: normal; line-height: 1.45; }
   /* รายการแสดงชื่อสั้นของข้อ (16 ต.ค. 2569: ประโยคเต็มยาว 4-5 บรรทัดอ่านยาก) ประโยคเต็มอยู่ในหน้าข้อทางขวาและเมื่อชี้เมาส์ */
   .toc .rs { display: block; font-size: 12.5px; color: var(--muted); } .toc .rs.pass { color: var(--pass); } .toc .rs.fail { color: var(--fail); } .toc .rs.block { color: #9a5b00; }   /* ผลและวันที่ทดสอบใต้ชื่อข้อ */
-  .att { white-space: nowrap; } .delimg { all: unset; cursor: pointer; margin-left: 6px; font-size: 13px; color: var(--fail); border: 1px solid #f2c4c0; border-radius: 6px; padding: 1px 7px; } .delimg:hover { background: #fdecea; } .delimg:disabled { opacity: .5; cursor: default; }
+  #atts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .shot { position: relative; width: 112px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #fff; }
+  .shot a { display: block; } .shot img, .shot .noimg { display: grid; place-items: center; width: 100%; height: 72px; object-fit: cover; font-style: normal; font-size: 26px; background: #f3f5f8; }
+  .shot small { display: block; text-align: center; font-size: 12px; color: var(--muted); padding: 2px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .shot.up { opacity: .75; }
+  .delimg { all: unset; cursor: pointer; position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; color: var(--fail); background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); } .delimg:hover { background: #fdecea; } .delimg:disabled { opacity: .5; cursor: default; }
   .legend { display: flex; gap: 10px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); padding: 6px 14px 8px; border-top: 1px solid var(--label); }
   .legend span::before { content: '●'; margin-right: 4px; }
   .legend .p::before { color: var(--pass); } .legend .f::before { color: var(--fail); } .legend .b::before { color: #e09a24; } .legend .t::before { color: #c8cfdb; }
@@ -194,8 +199,6 @@
   .att input { display: none; }
   .hint { color: var(--muted); font-size: 13.5px; }
   .atts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
-  .atts img { height: 64px; border: 1px solid var(--line); border-radius: 4px; cursor: zoom-in; }
-  .atts a { font-size: 14px; }
   .dv { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
   .dv select, .dv input { border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 16px; background: #fff; }
   .dv input { width: 150px; }
@@ -237,7 +240,8 @@
   .train-login { margin-top: 16px; text-decoration: none; background: #fff; }
   .h1row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px 14px; margin: 0 0 14px; }
   .h1row h1 { margin: 0 !important; }
-  .ui { white-space: nowrap; font-weight: 600; color: #1f3b57; background: #eef3f8; border: 1px solid #d8e2ec; border-radius: 5px; padding: 0 5px; margin: 0 1px; }   /* ชื่อปุ่ม/ช่องบนหน้าจอ */
+  .ui { white-space: nowrap; font-weight: 600; color: #1f3b57; background: #eef3f8; border-radius: 4px; padding: 0 4px; }   /* ชื่อปุ่ม/ช่องบนหน้าจอ */
+  .sl { display: block; } .sl + .sl { padding-left: 14px; position: relative; } .sl + .sl::before { content: "›"; position: absolute; left: 2px; color: var(--muted); }   /* การกระทำย่อยในขั้นเดียวกัน บรรทัดละ 1 อย่าง */
   .h1row .train-case { flex: none; white-space: nowrap; }   /* ปุ่มสั้น ไม่เบียดชื่อข้อ */
   .train-case { flex: none; min-height: 36px; padding: 5px 12px; font-size: 14px; text-decoration: none; margin-top: 2px; }
   @media (max-width: 1180px) { .train-btn span { display: none; } .train-btn { padding: 6px 9px; } }
@@ -524,7 +528,7 @@
 <div id="print-area"></div>
 
 <script src="config.js"></script>
-<script src="cases.js?v=fa66e3415406"></script>
-<script src="app.js?v=fa66e3415406"></script>
+<script src="cases.js?v=15b5aeff8a3c"></script>
+<script src="app.js?v=15b5aeff8a3c"></script>
 </body>
 </html>
