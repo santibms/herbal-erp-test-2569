@@ -177,7 +177,10 @@
     const first = m ? m[1] + ' ' + m[2] + ' ' + m[3] : '';
     return DAYS.indexOf(first) >= 0 ? first : DAYS[0];
   }
-  function curVerOf() { return ((state && state.current && state.current.ver) || '').trim(); }
+  // รุ่นปัจจุบัน = รุ่นที่ใหม่กว่าระหว่างค่าที่ผู้ดูแลตั้ง กับรุ่นที่ระบบ Herbal ERP ที่ทดสอบอยู่แสดง (DATA.erpVer อัปเดตทุกครั้งที่ขึ้นระบบ)
+  const verNum = v => (String(v || '').match(/\d+/g) || []).map(Number);
+  const newerVer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0) ? a : b; } return a || b; };
+  function curVerOf() { return String(newerVer(((state && state.current && state.current.ver) || '').trim(), DATA.erpVer || '') || '').trim(); }
   function showVers() { $('curVer').textContent = curVerOf() || '-'; }
   function applyCurrent(cu) {
     if (cu && cu.days && JSON.stringify(cu.days) !== JSON.stringify(state.current.days || [])) {
@@ -342,7 +345,7 @@
       const merged = {};
       Object.keys(j.results || {}).forEach(code => { merged[code] = j.results[code]; });
       Object.keys(state.res).forEach(code => { if (pend[code]) merged[code] = state.res[code]; });
-      state.res = merged;
+      state.res = merged; state.prev = j.prev || state.prev || {};
       buildList(state.serverCases);
       if (idxOf(state.code) < 0) state.code = LIST[0].code;
       if (idxOf(hashCode()) >= 0) state.code = hashCode();   // กลับมาจากหน้าวิธีการบันทึก: เปิดข้อนั้นเลย
@@ -496,6 +499,7 @@
       <section class="form" id="form"><div class="cap">บันทึกผลการทดสอบ ${esc(c.code)}</div>
         <table class="rt"><tbody>
           ${row('ชุดข้อมูลทดสอบที่ใช้', `<select id="dset" aria-label="ชุดข้อมูลทดสอบที่ใช้">${DSET_OPTS.map(o => `<option value="${esc(o)}"${(res(c.code).dset || '') === o ? ' selected' : ''}>${esc(o || '— ยังไม่ได้เลือก —')}</option>`).join('')}</select>`)}
+          ${retestRow(c, r)}
           ${row('ผลทดสอบ', `<div class="checks" role="radiogroup" aria-label="ผลทดสอบ">${['pass', 'fail', 'block'].map(v =>
             `<label class="ck ${v} ${r.v === v ? 'on' : ''}"><input type="radio" name="res" value="${v}" ${r.v === v ? 'checked' : ''}><span class="box">${ICON.check}</span>${LABEL[v]}</label>`).join('')}</div>
             <div class="hint" style="margin-top:4px"><b>ผ่าน</b> = ${esc(ti.pass)} · <b>ไม่ผ่าน</b> = ${esc(ti.fail)} · <b>ติดปัญหา</b> = ${esc(BLOCK_INFO)}</div>`)}
@@ -528,6 +532,7 @@
     };
     $('note').onblur = () => { if (noteTimer) { clearTimeout(noteTimer); noteTimer = 0; const rr = state.res[c.code]; if (rr && !pending(c.code) && rr._dirty) queueSave(c.code); } };
     if ($('day')) $('day').onchange = e => { res(c.code).day = e.target.value; queueSave(c.code); };
+    if ($('retestBtn')) $('retestBtn').onclick = () => retestCase(c.code);
     if ($('dset')) $('dset').onchange = e => { res(c.code).dset = e.target.value; stamp(c.code); queueSave(c.code); };
     $('ver').onchange = e => { res(c.code).ver = e.target.value.trim(); queueSave(c.code); };
     $('file').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) attach(c.code, f); };
@@ -563,6 +568,23 @@
     el.innerHTML = (r.img || []).map(card).join('')
       + loc.filter(s => s.state !== 'ok').map(s => `<span class="shot up"><img src="${s.src}" alt=""><small>${esc(s.state)}</small></span>`).join('');
     el.querySelectorAll('.delimg').forEach(b => b.onclick = () => delImg(code, b.dataset.u, b));
+  }
+  // ผลรุ่นก่อน: ข้อที่บันทึกด้วยรุ่นเก่ากว่ารุ่นปัจจุบัน มีปุ่มทดสอบซ้ำ ผลเดิมย้ายไปแท็บ ผลรุ่นก่อน ไม่ถูกเขียนทับ
+  function retestRow(c, r) {
+    const cur = curVerOf(), p = (state.prev || {})[c.code];
+    const old = r.v && r.ver && cur && newerVer(cur, r.ver) === cur && cur !== r.ver;
+    if (!old && !p) return '';
+    return `<tr><th>ผลรุ่นก่อน</th><td>${p ? `<div class="prevres">${SHORT[p.v] || '-'}${p.day ? ' · ' + esc(p.day) : ''}${p.ver ? ' · ' + esc(p.ver) : ''}</div>` : ''}`
+      + (old ? `<div class="retest">ผลข้อนี้บันทึกกับรุ่น <b>${esc(r.ver)}</b> · รุ่นปัจจุบัน <b>${esc(cur)}</b> <button type="button" class="btn" id="retestBtn">ทดสอบซ้ำกับรุ่น ${esc(cur)}</button><div class="hint">ผลเดิมจะถูกเก็บไว้ที่แท็บ "ผลรุ่นก่อน" ไม่ถูกเขียนทับ</div></div>` : '') + '</td></tr>';
+  }
+  async function retestCase(code) {
+    if (!confirm('เก็บผลเดิมของข้อ ' + code + ' ไว้ที่ "ผลรุ่นก่อน" แล้วทดสอบใหม่กับรุ่น ' + curVerOf() + ' ?')) return;
+    try {
+      const j = await call('retest', { token: session.token, code });
+      state.prev = state.prev || {}; state.prev[code] = j.prev;
+      delete state.res[code]; delete localShots[code]; persist();
+      toast('เก็บผลเดิมแล้ว ทดสอบข้อ ' + code + ' ใหม่ได้เลย'); render();
+    } catch (e) { if (e.code === 'AUTH') return expire(e.message); toast('ทำไม่สำเร็จ: ' + errText(e)); }
   }
   // ลบภาพที่แนบผิด: ลบออกจากผลของข้อนี้ ไฟล์ใน Google Drive ย้ายไปถังขยะ
   async function delImg(code, url, btn) {

@@ -31,7 +31,7 @@
  *                    อัปเดตโปรแกรมระหว่างทดสอบ: แก้ "รุ่นโปรแกรมปัจจุบัน" ข้อที่ทดสอบหลังจากนั้นจะบันทึกรุ่นใหม่ให้เอง
  */
 
-const SH = { RESULTS: 'ผลทดสอบ', LOG: 'ประวัติการบันทึก', SUMMARY: 'สรุป', USERS: 'ผู้ทดสอบ', CASES: 'ข้อทดสอบ', SETTINGS: 'ตั้งค่า', ANSWERS: 'คำชี้แจงผู้ดูแล' };
+const SH = { RESULTS: 'ผลทดสอบ', LOG: 'ประวัติการบันทึก', SUMMARY: 'สรุป', USERS: 'ผู้ทดสอบ', CASES: 'ข้อทดสอบ', SETTINGS: 'ตั้งค่า', ANSWERS: 'คำชี้แจงผู้ดูแล', ARCHIVE: 'ผลรุ่นก่อน' };
 const HEAD = {
   RESULTS: ['แก้ไขล่าสุด', 'ชื่อผู้ใช้', 'ผู้ทดสอบ', 'รหัสข้อ', 'ระบบ', 'ประเภท', 'โจทย์', 'ผล', 'ผลที่ได้จริง / ปัญหาที่พบ', 'ภาพแนบ', 'วันที่ทดสอบ', 'รุ่นโปรแกรม', 'โรงงาน / บริษัท', 'ชุดทดสอบที่ใช้'],
   LOG: ['เวลา', 'ชื่อผู้ใช้', 'ผู้ทดสอบ', 'รายการ', 'รหัสข้อ', 'ผลเดิม', 'ผลใหม่', 'ผลที่ได้จริง / ปัญหาที่พบ'],
@@ -264,7 +264,7 @@ function doPost(e) {
   }
 }
 
-const ACTIONS = { register: register, login: login, me: me, save: save, upload: upload, logout: logout, dashboard: dashboard, setCurrent: setCurrent, setOpenDays: setOpenDays, delImg: delImg, diag: diag, addCases: addCases, answer: answer, setProfile: setProfile };
+const ACTIONS = { register: register, login: login, me: me, save: save, upload: upload, logout: logout, dashboard: dashboard, setCurrent: setCurrent, setOpenDays: setOpenDays, delImg: delImg, retest: retest, diag: diag, addCases: addCases, answer: answer, setProfile: setProfile };
 
 // สร้างแท็บที่ยังไม่มี / ปรับข้อทดสอบเมื่อขึ้นโค้ดรุ่นใหม่ (ตรวจไม่บ่อย: จำผลไว้ในแคช 6 ชั่วโมง)
 function ensureReady(force) {
@@ -483,7 +483,44 @@ function meData(user) {
                                img: imgsOf(r[COL.R.img]), day: unq(r[COL.R.day]), ver: unq(r[COL.R.ver]), dset: unq(r[COL.R.dset]) };
   });
   const answers = answersOf().filter(function (a) { return a.user === user.username; });   // คำชี้แจงของผู้ดูแล (ใช้ในฉบับพิมพ์)
-  return { ok: true, user: user, results: results, cases: caseList(), current: current(), answers: answers };
+  return { ok: true, user: user, results: results, prev: prevOf(user.username), cases: caseList(), current: current(), answers: answers };
+}
+
+// ======================================================================= ผลรุ่นก่อน
+// ผู้ทดสอบกด "ทดสอบซ้ำกับรุ่น …" ที่ข้อที่บันทึกด้วยรุ่นเก่า: ย้ายแถวผลเดิมทั้งแถว (ผล ข้อความ ภาพ วันที่ รุ่น)
+// ไปแท็บ ผลรุ่นก่อน โดยไม่แก้ค่าใด ๆ แล้วข้อนั้นว่างให้ทดสอบใหม่ (16 ต.ค. 2569)
+function archiveSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(SH.ARCHIVE);
+  if (!sh) {
+    sh = ss.insertSheet(SH.ARCHIVE);
+    const head = HEAD.RESULTS.concat(['ย้ายมาเมื่อ']);
+    sh.getRange(1, 1, 1, head.length).setValues([head]).setFontWeight('bold').setBackground('#d6ebe7');
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+function prevOf(username) {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SH.ARCHIVE), out = {};
+  if (!sh) return out;
+  rowsOf(sh, HEAD.RESULTS.length + 1).forEach(function (r) {
+    if (r[COL.R.user] !== username) return;
+    out[r[COL.R.code]] = { v: keyOf(r[COL.R.v]), ver: unq(r[COL.R.ver]), day: unq(r[COL.R.day]) };   // แถวล่างสุด = ล่าสุด
+  });
+  return out;
+}
+function retest(req) {
+  const user = auth(req), code = str(req.code, 20);
+  caseOf(code);
+  return withLock(function () {
+    const sh = sheet(SH.RESULTS), f = findResult(sh, user.username, code);
+    if (!f || !String(f.r[COL.R.v]).trim()) fail('INPUT', 'ข้อนี้ยังไม่มีผลที่บันทึกไว้');
+    const row = sh.getRange(f.row, 1, 1, HEAD.RESULTS.length).getValues()[0];
+    archiveSheet().appendRow(row.concat([now()]));
+    sh.deleteRow(f.row);
+    log(user.username, user.full, 'ทดสอบซ้ำกับรุ่นใหม่ (ย้ายผลเดิมไปแท็บ ผลรุ่นก่อน)', code, String(f.r[COL.R.v]), '', 'รุ่นเดิม ' + unq(f.r[COL.R.ver]));
+    return { ok: true, prev: { v: keyOf(f.r[COL.R.v]), ver: unq(f.r[COL.R.ver]), day: unq(f.r[COL.R.day]) } };
+  });
 }
 
 function findResult(sh, user, code) {

@@ -184,6 +184,17 @@ def main():
         warn(f'ยังไม่มี {DATA.relative_to(ROOT)} สร้างจากข้อตัวอย่าง {len(PLACEHOLDER)} ข้อ')
     local = json.loads(LOCAL.read_text(encoding='utf-8-sig')) if LOCAL.exists() else {}
     invite = str(local.get('invite', '')).strip()
+    # รุ่นของระบบ Herbal ERP ที่ทดสอบ (อ่านจาก /api/health ตอนสร้างไฟล์) · ที่อยู่ระบบเก็บใน .local-settings.json ไม่เผยแพร่
+    erp_ver = ''
+    erp_url = str(local.get('erpUrl', '')).strip()
+    if erp_url:
+        try:
+            import urllib.request
+            body = urllib.request.urlopen(erp_url.rstrip('/') + '/api/health', timeout=15).read().decode('utf-8', 'replace')
+            m = re.search(r'HERBAL-BUILD-(v\d+\.\d+\.\d+)', body)
+            erp_ver = m.group(1) if m else ''
+        except Exception as e:
+            print('อ่านรุ่นระบบที่ทดสอบไม่ได้:', e)
     if not invite:
         warn(f'ไม่มีรหัสเชิญใน {LOCAL.name} (setup จะสุ่มรหัสเชิญให้ ดูได้ในแท็บ ตั้งค่า)')
 
@@ -248,7 +259,7 @@ def main():
     data = {'built': datetime.now().strftime('%Y-%m-%d %H:%M'), 'build': build,
             'source': 'data/cases-renu.json' if meta is not None else 'placeholder',
             'title': 'ทดสอบระบบ Herbal ERP', 'date': DAY, 'rounds': rounds, 'days': days,
-            'systems': systems, 'cases': out, 'extraImg': (meta or {}).get('extraImg', {})}
+            'systems': systems, 'cases': out, 'extraImg': (meta or {}).get('extraImg', {}), 'erpVer': erp_ver}
     js = ('// สร้างจาก tools/build_web_app.py ห้ามแก้ไฟล์นี้โดยตรง\nwindow.SA_DATA = '
           + json.dumps(data, ensure_ascii=False, indent=0) + ';\n')
     (WEB / 'cases.js').write_text(js, encoding='utf-8')
