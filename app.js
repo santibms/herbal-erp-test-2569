@@ -425,7 +425,7 @@
         + (filtering ? `<span class="gm">${shown.length} ข้อ</span>` : '') + `<span class="gc">${done}/${items.length}</span></button>`
         + (open ? shown.map(x => {
           const r = state.res[x.code] || {};
-          return `<button class="it" data-code="${esc(x.code)}" aria-current="${x === c}" title="${esc(x.task)}"><span class="dot ${r.v || ''} ${pending(x.code) ? 'pend' : ''}"></span><span class="c">${esc(x.code)}${hasEx(x.code) ? ' <span class="ex" title="มีตัวอย่างวิธีการบันทึก">📖</span>' : ''}</span><span class="tk"><span class="tt">${esc(x.task)}</span>${r.v ? `<small class="rs ${r.v}">${SHORT[r.v]}${r.day ? ' · ' + esc(r.day) : ''}${r.ver ? ' · ' + esc(r.ver) : ''}</small>` : ''}</span></button>`;
+          return `<button class="it" data-code="${esc(x.code)}" aria-current="${x === c}" title="${esc(x.task)}"><span class="dot ${r.v || ''} ${pending(x.code) ? 'pend' : ''}"></span><span class="c">${esc(x.code)}${hasEx(x.code) ? ' <span class="ex" title="มีตัวอย่างวิธีการบันทึก">📖</span>' : ''}</span><span class="tk"><span class="tt">${esc(x.short || x.task)}</span>${r.v ? `<small class="rs ${r.v}">${SHORT[r.v]}${r.day ? ' · ' + esc(r.day) : ''}${r.ver ? ' · ' + esc(r.ver) : ''}</small>` : ''}</span></button>`;
         }).join('') : '');
     }).join('');
     $('toc').innerHTML = html || '<div class="muted" style="padding:10px 14px">ไม่พบข้อที่ตรงกับเงื่อนไข</div>';
@@ -534,8 +534,25 @@
     const el = $('atts'); if (!el) return;
     const r = state.res[code] || {}, loc = localShots[code] || [];
     el.innerHTML = loc.map(s => `<img src="${s.src}" alt="ภาพที่แนบ" data-zoom="1" title="${esc(s.state)}">`).join('')
-      + (r.img || []).map((u, k) => `<a href="${esc(u)}" target="_blank" rel="noopener">ภาพที่ ${k + 1} (Google Drive)</a>`).join(' · ')
+      + (r.img || []).map((u, k) => `<span class="att"><a href="${esc(u)}" target="_blank" rel="noopener">ภาพที่ ${k + 1} (Google Drive)</a><button type="button" class="delimg" data-u="${esc(u)}" title="ลบภาพที่ ${k + 1}">✕ ลบ</button></span>`).join(' · ')
       + loc.filter(s => s.state !== 'ok').map(s => `<span class="hint">${esc(s.state)}</span>`).join('');
+    el.querySelectorAll('.delimg').forEach(b => b.onclick = () => delImg(code, b.dataset.u, b));
+  }
+  // ลบภาพที่แนบผิด: ลบออกจากผลของข้อนี้ ไฟล์ใน Google Drive ย้ายไปถังขยะ
+  async function delImg(code, url, btn) {
+    const r = state.res[code] || {}, k = (r.img || []).indexOf(url);
+    if (k < 0 || !confirm('ลบภาพที่ ' + (k + 1) + ' ของข้อ ' + code + ' ?')) return;
+    btn.disabled = true;
+    try {
+      const j = await call('delImg', { token: session.token, code, url });
+      res(code).img = j.img || []; persist();
+      if (localShots[code]) localShots[code] = localShots[code].filter(s => s.url !== url);
+      toast('ลบภาพที่ ' + (k + 1) + ' ของข้อ ' + code + ' แล้ว');
+    } catch (e) {
+      if (e.code === 'AUTH') return expire(e.message);
+      toast('ลบภาพไม่สำเร็จ: ' + errText(e));
+    }
+    if (cur().code === code) renderAtts(code);
   }
 
   // ======================================================================= บันทึกผล (คิวส่ง)
@@ -598,7 +615,7 @@
     renderAtts(code);
     try {
       const j = await call('upload', { token: session.token, code, data });
-      shot.state = 'ok';
+      shot.state = 'ok'; shot.url = j.url;
       const r = res(code); r.img = (r.img || []).concat([j.url]); persist();
       toast('แนบภาพ ' + code + ' แล้ว');
     } catch (e) {

@@ -210,7 +210,7 @@ def main():
                 'shotCap': str(c.get('shotCap', '')).strip()}
         # ช่องเพิ่มเติม (ถ้ามีในไฟล์ข้อทดสอบ): โจทย์หลัก / รอบ / ฝ่าย / ผู้ทำรายการ / ทำต่อจากข้อ
         case['core'] = bool(c.get('core'))
-        for k in ('round', 'dept', 'role', 'dependsOn'):
+        for k in ('round', 'dept', 'role', 'dependsOn', 'short'):
             v = str(c.get(k, '') or '').strip()
             case[k] = '' if v in ('-', '—') else v
         case['rk'] = round_of(case)

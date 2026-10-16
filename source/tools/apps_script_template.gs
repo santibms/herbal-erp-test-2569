@@ -254,7 +254,7 @@ function doPost(e) {
   }
 }
 
-const ACTIONS = { register: register, login: login, me: me, save: save, upload: upload, logout: logout, dashboard: dashboard, setCurrent: setCurrent, setOpenDays: setOpenDays, diag: diag, addCases: addCases, answer: answer, setProfile: setProfile };
+const ACTIONS = { register: register, login: login, me: me, save: save, upload: upload, logout: logout, dashboard: dashboard, setCurrent: setCurrent, setOpenDays: setOpenDays, delImg: delImg, diag: diag, addCases: addCases, answer: answer, setProfile: setProfile };
 
 // สร้างแท็บที่ยังไม่มี / ปรับข้อทดสอบเมื่อขึ้นโค้ดรุ่นใหม่ (ตรวจไม่บ่อย: จำผลไว้ในแคช 6 ชั่วโมง)
 function ensureReady(force) {
@@ -535,6 +535,27 @@ function upload(req) {
     else sh.appendRow([now(), user.username, safe(user.full), code, c.sysName, c.type, safe(c.task), '', '', imgs, '', '', safe(user.factory)]);
     log(user.username, user.full, 'แนบภาพ', code, '', '', name);
     return { ok: true, url: url, name: name };
+  });
+}
+
+// ลบภาพที่แนบผิด (16 ต.ค. 2569): ผู้ทดสอบลบได้เฉพาะภาพในผลของตัวเอง
+// ไฟล์ใน Google Drive ย้ายไปถังขยะ (กู้คืนได้ภายใน 30 วัน) และบันทึกไว้ในประวัติการบันทึก
+function delImg(req) {
+  const user = auth(req), code = str(req.code, 20), url = String(req.url || '');
+  caseOf(code);
+  return withLock(function () {
+    const sh = sheet(SH.RESULTS), f = findResult(sh, user.username, code);
+    const imgs = f ? imgsOf(f.r[COL.R.img]) : [], k = imgs.indexOf(url);
+    if (k < 0) fail('INPUT', 'ไม่พบภาพนี้ในผลของคุณ (อาจลบไปแล้ว) กรุณารีเฟรชหน้าเว็บ');
+    imgs.splice(k, 1);
+    sh.getRange(f.row, COL.R.img + 1).setValue(imgs.join('\n'));
+    let name = '';
+    try {
+      const id = (/[-\w]{25,}/.exec(url) || [])[0];
+      if (id) { const file = DriveApp.getFileById(id); name = file.getName(); file.setTrashed(true); }
+    } catch (e) {}
+    log(user.username, user.full, 'ลบภาพ', code, '', '', name || url);
+    return { ok: true, img: imgs };
   });
 }
 
