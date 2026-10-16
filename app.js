@@ -509,7 +509,7 @@
           ${row('ผู้ทดสอบ', 'ลงชื่อ ' + esc(session.user.full))}
           ${row('วันที่ทดสอบ / รุ่นโปรแกรม', `<div class="dv">${MULTI_DATE ? `<select id="day" aria-label="วันที่ทดสอบ">${DAYS.map(d => `<option ${d === day ? 'selected' : ''}>${d}</option>`).join('')}</select>` : `<span class="dayfix">${esc(day)}</span>`}
             <input id="ver" value="${esc(ver)}" placeholder="เช่น ${esc(curVerOf() || 'v1.6.84')}" aria-label="รุ่นโปรแกรม ${PRODUCT}"></div>
-            <div class="hint">บันทึกแยกทุกข้อ ค่าเริ่มต้นคือรุ่นที่ผู้ดูแลระบบกำหนด ถ้าหน้าจอ ${PRODUCT} แสดงรุ่นอื่น (มุมซ้ายล่าง) ให้แก้ตามหน้าจอ</div>`)}
+            <div class="hint">บันทึกแยกทุกข้อ ค่าเริ่มต้นคือรุ่นที่ระบบที่ทดสอบใช้อยู่ตอนนี้ ถ้าหน้าจอ ${PRODUCT} แสดงรุ่นอื่น (มุมซ้ายล่าง) ให้แก้ตามหน้าจอ</div>`)}
         </tbody></table>
         <div class="saved" id="saved"></div>
       </section>`;
