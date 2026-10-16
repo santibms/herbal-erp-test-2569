@@ -40,6 +40,8 @@
   };
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  // ชื่อปุ่ม/ช่องบนหน้าจอที่อยู่ในเครื่องหมายคำพูด แสดงเป็นป้ายที่ไม่ตัดกลางบรรทัด (16 ต.ค. 2569: "ผู้ / ขายที่ได้รับ…" ตกบรรทัดแล้วอ่านยาก)
+  const ui = s => esc(s).replace(/&quot;(.{1,80}?)&quot;/g, '<span class="ui">$1</span>');
   const store = {
     get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
@@ -290,7 +292,7 @@
   // เงื่อนไขก่อนเริ่ม: 1 บรรทัดต่อ 1 ข้อ · บรรทัดที่ไม่ขึ้นต้นด้วย • เป็นหัวข้อ (ตัวหนา)
   function preHtml(t) { return String(t).split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => /^[•\d]/.test(l) ? `<div class="pre-li">${esc(l)}</div>` : `<div class="pre-h">${esc(l)}</div>`).join(''); }
   // ข้อความยาวที่คั่นด้วย " · " แสดง 1 เรื่องต่อ 1 บรรทัด อ่านง่ายกว่าย่อหน้ายาว
-  function dotLines(t) { const parts = String(t || '').split(/\s+·\s+/).map(x => x.trim()).filter(Boolean); return parts.length > 1 ? parts.map(x => `<div class="pre-li">• ${esc(x)}</div>`).join('') : esc(t); }
+  function dotLines(t) { const parts = String(t || '').split(/\s+·\s+/).map(x => x.trim()).filter(Boolean); return parts.length > 1 ? parts.map(x => `<div class="pre-li">• ${ui(x)}</div>`).join('') : ui(t); }
   // ชุดข้อมูลทดสอบที่เลือกได้ในหน้าบันทึกผล (เก็บลงคอลัมน์ ชุดทดสอบที่ใช้ ในแท็บ ผลทดสอบ)
   const DSET_OPTS = [''].concat([1, 2, 3, 4, 5, 6, 7, 8].map(n => 'ชุดที่ ' + n), ['ไม่ได้ใช้ชุดทดสอบ (สร้างข้อมูลใหม่เอง)']);
   function hashCode() { return decodeURIComponent(location.hash.slice(1)); }
@@ -459,16 +461,17 @@
     const day = r.day || defaultDay(c), ver = r.ver || curVerOf(c) || '';
     $('sheet').innerHTML = `
       <div class="sh-hd"><span>${esc(c.sysName)} · ${esc(c.sec)}${c.core ? ' <b class="core">โจทย์หลัก (ทำใน Zoom)</b>' : ''}</span><span>${esc(c.slot)}</span></div>
-      <div class="h1row"><h1><span class="code">${esc(c.code)}</span>${esc(c.task)}</h1>
-        <a class="btn train-case" id="trainCase" data-code="${esc(c.code)}" target="_blank" rel="noopener" title="${TRAIN_LABEL} ของข้อ ${esc(c.code)} · เปิดในแท็บใหม่" hidden>${ICON.book}${TRAIN_LABEL}</a></div>
+      <div class="h1row"><h1><span class="code">${esc(c.code)}</span>${esc(c.short || c.task)}</h1>
+        <a class="btn train-case" id="trainCase" data-code="${esc(c.code)}" target="_blank" rel="noopener" title="${TRAIN_LABEL} ของข้อ ${esc(c.code)} · เปิดในแท็บใหม่" hidden>${ICON.book}ดูตัวอย่าง</a></div>
       ${c.img ? `<figure><img src="${esc(c.img)}" alt="${esc(c.shotCap)}" data-zoom="1" loading="lazy"><figcaption>${ICON.zoom} ${esc(c.shotCap)} · คลิกที่ภาพเพื่อขยาย</figcaption></figure>` : ''}
       <table class="doc"><tbody>
+        ${c.short ? row('สิ่งที่ต้องทำ', dotLines(c.task)) : ''}
         ${row('ประเภทโจทย์', `<div class="typ"><span class="tag ${c.type}">${esc(c.type)}</span><span>${esc(ti.what)}</span></div>`)}
         ${c.dept || c.role ? row('ฝ่าย / ผู้ทำรายการ', dotLines([c.dept, c.role].filter(Boolean).join(' · '))) : ''}
         ${c.dependsOn ? row('ทำต่อจากข้อ', esc(c.dependsOn)) : ''}
         ${row('เมนู', esc(c.menu))}
         ${c.pre ? row('เงื่อนไขก่อนเริ่ม', preHtml(c.pre)) : ''}
-        ${row(c.type === 'E2E' ? 'ขั้นตอนทดสอบ (ทำต่อเนื่องทั้งวงจร)' : 'ขั้นตอนทดสอบ', `<ol>${c.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol>`)}
+        ${row(c.type === 'E2E' ? 'ขั้นตอนทดสอบ (ทำต่อเนื่องทั้งวงจร)' : 'ขั้นตอนทดสอบ', `<ol>${c.steps.map(s => `<li>${ui(s)}</li>`).join('')}</ol>`)}
         ${c.data && c.data !== '-' ? row('ข้อมูลทดสอบ (ตามโจทย์)', dotLines(c.data)) : ''}
         ${c.sample.length ? row(sampleHead(c), c.sample.map(([k, v]) => `<b>${esc(k)}:</b> ${esc(v)}`).join('<br>')) : ''}
         ${row('ผลที่คาดหวัง', dotLines(c.expect))}
@@ -919,7 +922,7 @@
           ${c.dept || c.role ? row('ฝ่าย / ผู้ทำรายการ', dotLines([c.dept, c.role].filter(Boolean).join(' · '))) : ''}
           ${c.dependsOn ? row('ทำต่อจากข้อ', esc(c.dependsOn)) : ''}
           ${c.pre ? row('เงื่อนไขก่อนเริ่ม', preHtml(c.pre)) : ''}
-          ${row('ขั้นตอนทดสอบ', `<ol>${c.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol>`)}
+          ${row('ขั้นตอนทดสอบ', `<ol>${c.steps.map(s => `<li>${ui(s)}</li>`).join('')}</ol>`)}
           ${c.data && c.data !== '-' ? row('ข้อมูลทดสอบ (ตามโจทย์)', dotLines(c.data)) : ''}
           ${c.sample.length ? row(sampleHead(c), c.sample.map(([kk, v]) => `<b>${esc(kk)}:</b> ${esc(v)}`).join('<br>')) : ''}
           ${row('ผลที่คาดหวัง', dotLines(c.expect))}${c.note ? row('ข้อควรทราบ', dotLines(c.note)) : ''}
