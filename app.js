@@ -14,7 +14,8 @@
   // รอบ = ข้อความที่อยู่ในช่วงเวลาของข้อ เช่น '14 ต.ค. 2569' (โจทย์หลักใน Zoom) / 'ทดสอบต่อเอง 16–21 ต.ค. 2569'
   const DAYS = (DATA.days && DATA.days.length) ? DATA.days.slice() : ['14 ต.ค. 2569'];
   const TEST_DAYS = (DATA.rounds && DATA.rounds.length) ? DATA.rounds.slice() : DAYS.slice(0, 1);
-  const MULTI_DATE = DAYS.length > 1, MULTI_DAY = TEST_DAYS.length > 1;
+  // 16 ต.ค. 2569 ผู้ใช้สั่ง "ไม่แบ่งวันแล้ว": ทุกคนเห็นทุกข้อ ไม่มีตัวกรอง/การเปิดรอบ ข้อไหนจะแสดงให้ตั้งในแท็บ ข้อทดสอบ ช่อง แสดง ของ Google Sheet
+  const MULTI_DATE = DAYS.length > 1, MULTI_DAY = false;
   const roundLabel = r => String(r).replace(/ \d{4}$/, '');
   const inRound = (c, r) => (c.slot || '').indexOf(r) >= 0;
   const TH_M = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
@@ -136,10 +137,8 @@
       BUILTIN.forEach(c => { if (c.sysName === g && !hidden[c.code]) out.push(c); });
       extras.forEach(c => { if (c.sysName === g) out.push(c); });
     });
-    // ผู้ทดสอบเห็นเฉพาะข้อของวันที่เปิดให้ทดสอบ (ผู้ดูแลเห็นทุกข้อ) ข้อที่บันทึกแล้วยังแสดงเสมอ
-    const days = openDays(), admin = session && session.user.role === 'admin';
-    LIST = out.filter(c => admin || !c.slot || days.some(d => inRound(c, d)) || ((state && state.res[c.code]) || {}).v);
-    if (!LIST.length) LIST = out;
+    // ทุกคนเห็นทุกข้อที่แท็บ ข้อทดสอบ ตั้งเป็น "แสดง" (ไม่แบ่งรอบ/วันแล้ว)
+    LIST = out;
     if (state && state.current) showVers();
     const ps = $('printSys'), pk = ps.value, sy = LIST.map(c => c.sysName).filter((g, i, a) => a.indexOf(g) === i);
     ps.innerHTML = '<option value="">พิมพ์ทุกระบบ</option>' + sy.map(g => `<option value="${esc(g)}" ${g === pk ? 'selected' : ''}>${esc(g)}</option>`).join('');
@@ -406,14 +405,13 @@
   function matches(x) {
     const q = query.trim().toLowerCase(), r = state.res[x.code] || {}, f = state.filter || {};
     if (q && (x.code + ' ' + x.task + ' ' + x.menu).toLowerCase().indexOf(q) < 0) return false;
-    if (f.day && !inRound(x, f.day)) return false;
     if (f.st === 'todo' && r.v) return false;
     if (f.st === 'done' && !r.v) return false;
     if (f.st === 'bad' && r.v !== 'fail' && r.v !== 'block') return false;
     return true;
   }
   function renderToc() {
-    const c = cur(), f = state.filter || {}, filtering = !!(query.trim() || f.day || f.st);
+    const c = cur(), f = state.filter || {}, filtering = !!(query.trim() || f.st);
     if (!state.fold) {                            // ครั้งแรก: ขยายเฉพาะระบบของข้อที่กำลังทำ
       state.fold = {}; LIST.forEach(x => { if (x.sysName !== c.sysName) state.fold[x.sysName] = true; });
     }
@@ -441,7 +439,7 @@
     $('fDay').value = days.indexOf(f.day) >= 0 ? f.day : ''; $('fSt').value = f.st || '';
     $('fDay').hidden = !MULTI_DAY; $('fDay').parentNode.classList.toggle('one', !MULTI_DAY);   // มีรอบเดียว: ไม่ต้องกรองตามรอบ
     const closed = TEST_DAYS.filter(d => openDays().indexOf(d) < 0);
-    $('closedNote').hidden = admin || !closed.length;
+    $('closedNote').hidden = true;
     $('closedNote').textContent = 'ข้อของรอบ ' + closed.map(roundLabel).join(' และ ') + ' จะเปิดให้ทดสอบตามกำหนดการ';
     const a = $('toc').querySelector('[aria-current=true]');
     if (a && a.scrollIntoView) a.scrollIntoView({ block: 'nearest' });
@@ -682,9 +680,8 @@
   const AST = { fixed: ['แก้ไขแล้ว', 'pass'], works: ['ระบบทำได้ (ตามคำชี้แจง)', 'pass'], wip: ['อยู่ระหว่างแก้ไข', 'block'], suggest: ['ข้อเสนอแนะ (พัฒนาต่อ)', 'sug'] };
   const AST_DONE = { fixed: 1, works: 1 };
   function renderDash() {
-    // นับเฉพาะข้อของวันที่เปิดให้ทดสอบ
     const d = dash, od = (d.current.days && d.current.days.length) ? d.current.days : TEST_DAYS.slice(0, 1);
-    const cases = d.cases.filter(c => c.show && (!c.slot || od.some(x => c.slot.indexOf(x) >= 0))), codes = {}, names = {};
+    const cases = d.cases.filter(c => c.show), codes = {}, names = {};
     cases.forEach(c => { codes[c.code] = c; });
     d.testers.forEach(t => { names[t.username] = t.full; });
     const results = d.results.filter(r => codes[r.code]);
@@ -704,7 +701,7 @@
     const all = results.filter(r => r.v && people.some(p => p.username === r.user));
     const total = people.length * cases.length;
     $('dTime').textContent = 'ข้อมูลล่าสุด ' + fmtDT(d.time) + ' น. · รีเฟรชอัตโนมัติทุก 1 นาที'
-      + (MULTI_DAY ? ' · นับเฉพาะข้อของรอบที่เปิดให้ทดสอบ (' + od.map(roundLabel).join(', ') + ')' : ' · วันที่ทดสอบ ' + DAYS[0]);
+      + '';
     $('dSheet').href = d.sheetUrl;
     if (document.activeElement !== $('dVer')) $('dVer').value = (d.current.ver || '').trim();
     // เปิด/ปิดวันที่ให้ทดสอบ: แสดงเฉพาะเมื่อมีวันทดสอบมากกว่า 1 วัน
@@ -875,8 +872,7 @@
     const t = dash && dash.testers.find(x => x.username === $('dPrintWho').value);
     if (!t) return toast('เลือกผู้ทดสอบก่อน');
     const res = {}; dash.results.filter(r => r.user === t.username).forEach(r => { res[r.code] = r; });
-    const od = (dash.current.days && dash.current.days.length) ? dash.current.days : TEST_DAYS.slice(0, 1);
-    const list = LIST.filter(c => !c.slot || od.some(x => c.slot.indexOf(x) >= 0) || (res[c.code] || {}).v);
+    const list = LIST.slice();
     const answers = {}; (dash.answers || []).filter(x => x.user === t.username).forEach(x => { answers[x.code] = x; });
     doPrint(mode, { u: t, res, list, shots: {}, answers, sys: $('dPrintSys').value });
   }

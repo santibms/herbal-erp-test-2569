@@ -1,7 +1,7 @@
 // สร้างจาก tools/build_web_app.py ห้ามแก้ไฟล์นี้โดยตรง
 window.SA_DATA = {
-"built": "2026-10-15 15:33",
-"build": "0c0638311889",
+"built": "2026-10-16 16:32",
+"build": "185e7f2e2ede",
 "source": "data/cases-renu.json",
 "title": "ทดสอบระบบ Herbal ERP",
 "date": "14 ต.ค. 2569",
