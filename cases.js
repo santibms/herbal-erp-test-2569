@@ -1,7 +1,7 @@
 // สร้างจาก tools/build_web_app.py ห้ามแก้ไฟล์นี้โดยตรง
 window.SA_DATA = {
-"built": "2026-10-16 18:17",
-"build": "87e71e068ee0",
+"built": "2026-10-16 20:24",
+"build": "81643953762c",
 "source": "data/cases-renu.json",
 "title": "ทดสอบระบบ Herbal ERP",
 "date": "14 ต.ค. 2569",
@@ -2921,5 +2921,5 @@ window.SA_DATA = {
 }
 ],
 "extraImg": {},
-"erpVer": "v1.6.93"
+"erpVer": "v1.6.95"
 };
