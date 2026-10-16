@@ -112,7 +112,7 @@ function setup() {
   }
   cs.getRange(2, CC.tb + 1, 500, 1).setDataValidation(dv(['เปิด', 'ปิด']));
   // ช่องที่ยังว่าง: ข้อที่มีตัวอย่างแล้ว = เปิด · ข้อที่ยังไม่มี = ปิด (ค่าที่ผู้ดูแลตั้งไว้แล้วไม่ถูกแตะ)
-  const EX_CODES = ['PUR-04', 'PUR-05', 'QC-01', 'QC-02', 'QC-03', 'PRM-01', 'PRM-04', 'GMP-01', 'GMP-05',
+  const EX_CODES = ['PUR-01', 'PUR-02', 'PUR-03', 'PUR-06', 'PUR-07', 'PUR-04', 'PUR-05', 'QC-01', 'QC-02', 'QC-03', 'PRM-01', 'PRM-04', 'GMP-01', 'GMP-05',
                     'HR-01', 'HR-02', 'SAL-02', 'SAL-05', 'ACC-02', 'ACC-04', 'CST-01'];
   const crow = rowsOf(cs, HEAD.CASES.length);
   if (crow.length) {
@@ -121,6 +121,16 @@ function setup() {
       return [v || !code ? v : (EX_CODES.indexOf(code) >= 0 ? 'เปิด' : 'ปิด')];
     });
     cs.getRange(2, CC.tb + 1, col.length, 1).setValues(col);
+  }
+  // ครั้งเดียว (16 ต.ค. 2569): ตัวอย่างวิธีการบันทึกของระบบจัดซื้อที่ทำเพิ่ม — เปิดปุ่มตัวอย่างของข้อเหล่านี้
+  // (ปุ่มขึ้นจริงเฉพาะข้อที่เว็บตัวอย่างมีแล้วใน codes.json)
+  const P2 = PropertiesService.getScriptProperties();
+  if (P2.getProperty('tb-open-pur-20261016') !== 'done') {
+    const openNow = ['PUR-01', 'PUR-02', 'PUR-03', 'PUR-06', 'PUR-07'];
+    rowsOf(cs, HEAD.CASES.length).forEach(function (r, i) {
+      if (openNow.indexOf(String(r[CC.code]).trim()) >= 0) cs.getRange(i + 2, CC.tb + 1).setValue('เปิด');
+    });
+    P2.setProperty('tb-open-pur-20261016', 'done');
   }
   syncCases(cs);
   // ช่องเลือกสำหรับแถวที่แอดมินเพิ่มเอง (รวมชื่อระบบที่มีอยู่แล้วในแท็บ ไม่ให้แถวเดิมกลายเป็นค่าที่ไม่ถูกต้อง)
