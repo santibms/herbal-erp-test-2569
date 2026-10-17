@@ -138,11 +138,12 @@ function setup() {
     if (nAll) cs.getRange(2, CC.tb + 1, nAll, 1).setValue('เปิด');
     P2.setProperty('tb-open-all-20261016', 'done');
   }
-  syncCases(cs);
-  // ช่องเลือกสำหรับแถวที่แอดมินเพิ่มเอง (รวมชื่อระบบที่มีอยู่แล้วในแท็บ ไม่ให้แถวเดิมกลายเป็นค่าที่ไม่ถูกต้อง)
+  // ช่องเลือกชื่อระบบ (รวมชื่อระบบที่มีอยู่แล้วในแท็บ ไม่ให้แถวเดิมกลายเป็นค่าที่ไม่ถูกต้อง) — ตั้งก่อนเพิ่มข้อ:
+  // ชื่อระบบใหม่ (การผลิต ฯลฯ) ถูกช่องตรวจสอบเดิมปฏิเสธ แถวใหม่ทั้งชุดจึงไม่ถูกเพิ่ม (17 ต.ค. 2569)
   const names = SYSTEM_NAMES.slice();
   rowsOf(cs, HEAD.CASES.length).forEach(function (r) { const n = unq(r[CC.sys]); if (n && names.indexOf(n) < 0) names.push(n); });
   if (names.length) cs.getRange(2, CC.sys + 1, 500, 1).setDataValidation(dv(names));
+  syncCases(cs);
   cs.getRange(2, CC.type + 1, 500, 1).setDataValidation(dv(TYPES));
   cs.getRange(2, CC.show + 1, 500, 1).setDataValidation(dv(['แสดง', 'ไม่แสดง']));
 
