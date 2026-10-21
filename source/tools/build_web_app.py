@@ -22,18 +22,18 @@ GS_OUT = ROOT / 'apps-script' / 'Code.gs'
 
 DAY = '14 ต.ค. 2569'
 # 8 ระบบ ตามลำดับใน Zoom (กำหนดการ 14 ต.ค. 2569) [รหัส, ชื่อ, ช่วงเวลา, รหัสอื่นที่อาจใช้]
-SYSTEMS = [
+SYSTEMS = [  # ลำดับตามสายงานผลิต (ผู้ใช้สั่ง 21 ต.ค. 2569)
+    ('MD', 'ข้อมูลหลัก', '', ('MASTER',)),
     ('PUR', 'จัดซื้อ', '13:10 – 13:35', ('PO', 'PR', 'PURCHASE')),
+    ('INV', 'คลังสินค้า', '', ('STOCK', 'WH')),
     ('QC', 'ควบคุมคุณภาพ', '13:35 – 14:00', ('QA', 'QUALITY')),
-    ('PRM', 'อาคารสถานที่', '14:00 – 14:20', ('PREM', 'PREMISES', 'FAC')),
-    ('GMP', 'มาตรฐาน GMP', '14:20 – 14:45', ('DOC', 'SOP')),
-    ('HR', 'ทรัพยากรบุคคล', '14:45 – 15:05', ('EMP',)),
+    ('PRD', 'การผลิต', '', ('PROD', 'WO', 'MW')),
     ('SAL', 'ขาย', '15:05 – 15:30', ('SALE', 'SALES', 'SO')),
     ('ACC', 'บัญชี', '15:30 – 15:55', ('AC', 'GL', 'AP', 'AR')),
     ('CST', 'การจัดการต้นทุน', '15:55 – 16:10', ('COST', 'CS')),
-    ('PRD', 'การผลิต', '', ('PROD', 'WO', 'MW')),
-    ('INV', 'คลังสินค้า', '', ('STOCK', 'WH')),
-    ('MD', 'ข้อมูลหลัก', '', ('MASTER',)),
+    ('PRM', 'อาคารสถานที่', '14:00 – 14:20', ('PREM', 'PREMISES', 'FAC')),
+    ('GMP', 'มาตรฐาน GMP', '14:20 – 14:45', ('DOC', 'SOP')),
+    ('HR', 'ทรัพยากรบุคคล', '14:45 – 15:05', ('EMP',)),
     ('RPT', 'รายงานรวม', '', ('REPORT', 'DASH')),
 ]
 TYPES = ('Positive', 'Negative', 'E2E')
@@ -244,7 +244,7 @@ def main():
     for name, cs in other.items():
         out += cs
         systems.append({'k': 'X', 'n': name, 'day': DAY, 'count': len(cs)})
-        warn(f'ข้อของ "{name}" ไม่ตรงกับ 8 ระบบ ({", ".join(c["code"] for c in cs)}) แสดงต่อท้าย')
+        warn(f'ข้อของ "{name}" ไม่ตรงกับระบบที่กำหนด ({", ".join(c["code"] for c in cs)}) แสดงต่อท้าย')
     codes = [c['code'] for c in out]
     dup = sorted({x for x in codes if codes.count(x) > 1})
     if dup:

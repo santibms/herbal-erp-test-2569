@@ -187,7 +187,10 @@ function syncCases(cs) {
     const vals = c.slice(1);                       // ระบบ ... ผลที่คาดหวัง (8 ช่อง)
     const cell = vals.map(function (v, k) { return k === 1 ? v : safe(v); });   // ประเภทเก็บค่าตรง (ใช้กับรายการตรวจสอบ)
     const f = at[c[0]];
-    if (!f) { add.push([++order, c[0]].concat(cell).concat(['แสดง', 'เปิด'])); return; }
+    if (!f) { add.push([CASES.indexOf(c) + 1, c[0]].concat(cell).concat(['แสดง', 'เปิด'])); return; }
+    // ลำดับ follows the built-in order (systems re-ordered by process, 21 ต.ค. 2569).
+    const want = CASES.indexOf(c) + 1;
+    if (Number(f.r[CC.order]) !== want) cs.getRange(f.row, CC.order + 1).setValue(want);
     const same = vals.every(function (v, k) { return unq(f.r[CC.sys + k]) === String(v); });
     if (!same) cs.getRange(f.row, CC.sys + 1, 1, cell.length).setValues([cell]);
   });
