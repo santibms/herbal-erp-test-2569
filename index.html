@@ -119,7 +119,7 @@
   .who { position: relative; } .editbtn { all: unset; cursor: pointer; position: absolute; top: 8px; right: 8px; width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; color: var(--brand-d); } .editbtn:hover { background: var(--soft); }
   .who .fac { font-weight: 600; color: var(--brand-d); font-size: 14px; }
   .linkbtn { all: unset; cursor: pointer; color: var(--brand-d); font-size: 13px; text-decoration: underline; text-underline-offset: 3px; padding: 2px 0; }
-  .dsel { border: 1px solid var(--line); border-radius: 8px; padding: 0 10px; height: 42px; background: #fff; font-size: 14.5px; max-width: 260px; }
+  .dsel { border: 1px solid var(--line); border-radius: 8px; padding: 0 10px; height: 42px; background: #fff; font-size: 14.5px; max-width: 380px; }
   /* กล่องข้อมูลผู้ทดสอบ (ขอชื่อโรงงาน / บริษัท ครั้งแรกหลังเข้าระบบ) */
   .modal { position: fixed; inset: 0; z-index: 65; background: rgba(15,30,30,.45); display: grid; place-items: center; padding: 16px; }
   .modal-card { background: #fff; border-radius: 14px; padding: 20px 22px 16px; width: min(460px, 100%); box-shadow: 0 24px 60px rgba(20,40,60,.25); }
@@ -495,6 +495,7 @@
       <div><h2>แดชบอร์ดสรุปผลการทดสอบ</h2><span class="muted" id="dTime"></span></div>
       <div class="dash-act">
         <select id="dFactory" class="dsel" aria-label="แสดงตามโรงงาน / บริษัท" hidden></select>
+        <select id="dWho" class="dsel" aria-label="ดูเฉพาะผู้ทดสอบ" hidden></select>
         <div class="verset" id="dDays" hidden>เปิดให้ทดสอบ</div>
         <label class="verset">รุ่น Herbal ERP <input id="dVer" placeholder="เช่น v1.6.85" aria-label="รุ่นโปรแกรม Herbal ERP"><button class="btn" id="dVerSave">บันทึกรุ่น</button></label>
         <button class="btn" id="dRefresh">รีเฟรช</button>
@@ -505,7 +506,7 @@
     <div class="kpis" id="dKpi"></div>
     <div class="dgrid">
       <div class="card"><h3>ความคืบหน้าของผู้ทดสอบ</h3><div class="ptools dact"><span class="pl">พิมพ์ผลรายบุคคล</span><select id="dPrintWho" aria-label="ผู้ทดสอบที่จะพิมพ์"></select><select id="dPrintSys" aria-label="ระบบที่จะพิมพ์"></select><button class="btn" id="dPrintSum">พิมพ์สรุปผล</button><button class="btn" id="dPrintAll">พิมพ์ทั้งเล่ม</button></div><div class="scroll" id="dTesters"></div></div>
-      <div class="card"><h3>ผลรวมตามระบบ (ทุกท่านรวมกัน)</h3><div class="scroll" id="dSys"></div></div>
+      <div class="card"><h3 id="dSysH">ผลรวมตามระบบ (ทุกท่านรวมกัน)</h3><div class="scroll" id="dSys"></div></div>
     </div>
     <div class="card"><h3>ข้อที่ไม่ผ่าน / ติดปัญหา <span class="muted" id="dIssueN"></span></h3><div class="mtools"><select id="dIssueSys" aria-label="เลือกระบบ"></select><select id="dIssueSt" aria-label="สถานะการแก้ไข"><option value="">ทุกสถานะ</option><option value="none">ยังไม่ชี้แจง</option><option value="wip">อยู่ระหว่างแก้ไข</option><option value="suggest">ข้อเสนอแนะ (พัฒนาต่อ)</option><option value="done">ปิดประเด็นแล้ว</option></select><span class="dact">กด "เพิ่มคำชี้แจง" เพื่อบันทึกเหตุผล วิธีที่ถูกต้อง หรือสิ่งที่แก้ไขแล้ว ของแต่ละข้อ</span></div><div class="scroll" id="dIssues"></div></div>
     <div class="card"><h3>ผลรายข้อ × ผู้ทดสอบ</h3>
@@ -529,7 +530,7 @@
 <div id="print-area"></div>
 
 <script src="config.js"></script>
-<script src="cases.js?v=c3606a5ef4fd"></script>
-<script src="app.js?v=c3606a5ef4fd"></script>
+<script src="cases.js?v=9f9757d3f173"></script>
+<script src="app.js?v=9f9757d3f173"></script>
 </body>
 </html>

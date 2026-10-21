@@ -746,6 +746,9 @@
   const AST_DONE = { fixed: 1, works: 1 };
   function renderDash() {
     const d = dash, od = (d.current.days && d.current.days.length) ? d.current.days : TEST_DAYS.slice(0, 1);
+    // ลำดับข้อ/ระบบตามรายการโจทย์ (เรียงตามสายงาน) — แถวในชีตยังอยู่ลำดับเดิม
+    const ORD = {}; BUILTIN.forEach((c, i) => { ORD[c.code] = i; });
+    d.cases.sort((a, b) => (ORD[a.code] ?? 1e6) - (ORD[b.code] ?? 1e6));
     const cases = d.cases.filter(c => c.show), codes = {}, names = {};
     cases.forEach(c => { codes[c.code] = c; });
     d.testers.forEach(t => { names[t.username] = t.full; });
@@ -754,12 +757,28 @@
     let people = d.testers.filter(t => t.role === 'tester' || has[t.username]);
     // เลือกดูทีละโรงงาน (แสดงเมื่อมีผู้ทดสอบมากกว่า 1 โรงงาน)
     const facs = people.map(t => t.factory || '').filter((g, i, a) => a.indexOf(g) === i).sort();
-    const fsel = $('dFactory'), fkeep = fsel.value, NONE = '__none__';
+    const fsel = $('dFactory'), NONE = '__none__';
+    // จำตัวเลือกไว้ — เปิดแดชบอร์ดครั้งหน้าก็ยังดูเฉพาะโรงงาน/ผู้ทดสอบเดิม
+    const remember = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+    const recall = (k) => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } };
+    const fkeep = fsel.dataset.init ? fsel.value : recall('sa.dash.factory');
     fsel.hidden = facs.length < 2;
     fsel.innerHTML = '<option value="">ทุกโรงงาน / บริษัท</option>' + facs.map(f => `<option value="${esc(f || NONE)}">${esc(f || '(ยังไม่ระบุโรงงาน)')} (${people.filter(t => (t.factory || '') === f).length} ท่าน)</option>`).join('');
     fsel.value = facs.some(f => (f || NONE) === fkeep) ? fkeep : '';
+    fsel.dataset.init = '1';
     const fsv = fsel.hidden ? '' : fsel.value;
+    remember('sa.dash.factory', fsv);
     if (fsv) people = people.filter(t => (t.factory || NONE) === fsv);
+    // ดูเฉพาะผู้ทดสอบคนเดียว (ในโรงงานที่เลือก)
+    const wsel = $('dWho'), wkeep = wsel.dataset.init ? wsel.value : recall('sa.dash.who');
+    wsel.hidden = people.length < 2 && !wkeep;
+    wsel.innerHTML = '<option value="">ผู้ทดสอบทุกคน' + (fsv ? 'ในกลุ่มนี้' : '') + ` (${people.length} ท่าน)</option>`
+      + people.map(t => `<option value="${esc(t.username)}">${esc(t.full)}</option>`).join('');
+    wsel.value = people.some(t => t.username === wkeep) ? wkeep : '';
+    wsel.dataset.init = '1';
+    remember('sa.dash.who', wsel.value);
+    if (wsel.value) people = people.filter(t => t.username === wsel.value);
+    $('dSysH').textContent = 'ผลรวมตามระบบ ' + (wsel.value ? `(เฉพาะ ${people[0] ? people[0].full : ''})` : fsv ? `(เฉพาะ ${fsel.options[fsel.selectedIndex].textContent.replace(/ \(\d+ ท่าน\)$/, '')})` : '(ทุกท่านรวมกัน)');
     const facOf = {}; d.testers.forEach(t => { facOf[t.username] = t.factory || ''; });
     const R = {}; results.forEach(r => { (R[r.user] = R[r.user] || {})[r.code] = r; });
     const cnt = (list, v) => list.filter(r => r.v === v).length;
@@ -906,7 +925,8 @@
   }
   $('dVerSave').onclick = saveVer;
   $('dSysF').onchange = () => { if (dash) renderDash(); };
-  $('dFactory').onchange = () => { if (dash) renderDash(); };
+  $('dFactory').onchange = () => { $('dWho').value = ''; if (dash) renderDash(); };
+  $('dWho').onchange = () => { if (dash) renderDash(); };
   $('dIssueSys').onchange = () => { if (dash) renderDash(); };
   $('dIssueSt').onchange = () => { if (dash) renderDash(); };
   // คำชี้แจงของผู้ดูแลต่อข้อที่ไม่ผ่าน/ติดปัญหา (ผู้ทดสอบอาจไม่ทราบวิธีดูข้อมูลที่ถูกต้อง)
