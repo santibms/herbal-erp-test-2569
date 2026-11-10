@@ -275,7 +275,7 @@
   .feed { list-style: none; margin: 0; padding: 0; }
   .feed .fday { margin: 14px 0 2px; padding: 0 2px 6px; font-size: 13.5px; font-weight: 600; color: var(--brand-d); border-bottom: 2px solid var(--line); }
   .feed .fday:first-child { margin-top: 0; }
-  .feed .fi { display: grid; grid-template-columns: 48px 30px minmax(0, 1fr); gap: 0 10px; align-items: start; padding: 10px 2px; border-bottom: 1px solid color-mix(in srgb, var(--line) 55%, #fff); }
+  .feed .fi { display: grid; grid-template-columns: 48px 30px minmax(0, 1fr); gap: 0 10px; align-items: start; padding: 14px 2px; border-bottom: 1px solid color-mix(in srgb, var(--line) 55%, #fff); }
   .feed .ft { padding-top: 4px; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
   .feed .fa { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; font-weight: 600; color: var(--brand-d); background: var(--head); }
   .feed .fm { min-width: 0; line-height: 1.75; }
@@ -289,7 +289,12 @@
   .feed .lv.pass { color: var(--pass); background: #e6f4ea; } .feed .lv.fail { color: var(--fail); background: #fdecea; } .feed .lv.block { color: var(--block); background: #fff1d6; }
   .feed .lv.old.pass, .feed .lv.old.fail, .feed .lv.old.block { background: #f3f4f6; }
   .feed .fto { margin: 0 6px 0 0; color: var(--muted); } .feed .fchg { white-space: nowrap; }
-  .feed .fx { display: block; margin-top: 2px; font-size: 14.5px; color: #3a4250; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .feed .fx { list-style: none; display: block; margin: 6px 0 2px; padding: 4px 0 4px 12px; border-left: 3px solid var(--line); font-size: 14.5px; line-height: 1.7; color: #3a4250; }
+  .feed .fx li { position: relative; padding-left: 15px; overflow-wrap: anywhere; } .feed .fx li + li { margin-top: 6px; }
+  .feed .fx li::before { content: ''; position: absolute; left: 0; top: .75em; width: 6px; height: 6px; border-radius: 50%; background: var(--brand-2); opacity: .55; }
+  .feed .fx.one li { padding-left: 0; } .feed .fx.one li::before { display: none; }
+  .feed .fx .ok { color: var(--pass); }
+  .feed .fx.same { font-size: 13.5px; color: var(--muted); border-left-style: dashed; }
   .feed .fi.in { padding: 6px 2px; } .feed .fi.in .fa { opacity: .55; }
   .bar2 { height: 8px; border-radius: 99px; background: var(--head); overflow: hidden; display: flex; min-width: 90px; }
   .bar2 i { display: block; height: 100%; } .bar2 .p { background: var(--pass); } .bar2 .f { background: var(--fail); } .bar2 .b { background: #e09a24; }
@@ -551,7 +556,7 @@
 <div id="print-area"></div>
 
 <script src="config.js"></script>
-<script src="cases.js?v=2186517d42dc"></script>
-<script src="app.js?v=2186517d42dc"></script>
+<script src="cases.js?v=948a993bec23"></script>
+<script src="app.js?v=948a993bec23"></script>
 </body>
 </html>

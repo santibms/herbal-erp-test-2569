@@ -873,15 +873,22 @@
     const kind = w => /ผล/.test(w) ? 'res' : /ภาพ/.test(w) ? 'img' : /เข้าระบบ|สมัคร/.test(w) ? 'in' : 'adm';
     // ประวัติเก็บผลเป็นคำไทย (ผ่าน / ไม่ผ่าน / ติดปัญหา) จึงหาสีจากคำนั้น
     const vtag = (v, old) => { const c = SHORT[v] ? v : Object.keys(SHORT).find(x => SHORT[x] === v) || ''; return `<span class="lv ${c}${old ? ' old' : ''}">${esc(SHORT[c] || v)}</span>`; };
-    let lday = '';
+    // ข้อความยาวที่ผู้ทดสอบคั่นด้วย " · " แยกเป็นทีละบรรทัด และเครื่องหมาย ✓ เป็นสีเขียว
+    const noteHtml = t => {
+      const ls = String(t).split(/\s+·\s+|\n+/).map(s => s.trim()).filter(Boolean);
+      return `<ul class="fx${ls.length > 1 ? '' : ' one'}">` + ls.map(s => `<li>${esc(s).replace(/✓/g, '<b class="ok">✓</b>')}</li>`).join('') + '</ul>';
+    };
+    let lday = '', lnote = '';
     $('dLog').innerHTML = d.log.length ? '<ol class="feed">' + d.log.map(l => {
       const k = kind(l.what), nm = l.full || l.user || '', day = dKey(l.t), head = day !== lday ? `<li class="fday">${dayName(l.t)}</li>` : '';
-      lday = day;
+      // ข้อความเดิมซ้ำกับรายการที่อยู่เหนือขึ้นไป (คนเดียวกัน ข้อเดียวกัน) ไม่ต้องแสดงซ้ำทั้งก้อน
+      const nkey = l.note ? [l.user, l.code, l.note].join('|') : '', same = nkey && nkey === lnote;
+      lday = day; lnote = nkey;
       const code = l.code ? (idxOf(l.code) >= 0 ? `<button class="fc" data-go="${esc(l.code)}" title="เปิดข้อ ${esc(l.code)}">${esc(l.code)}</button>` : `<b class="fc">${esc(l.code)}</b>`) : '';
       const chg = k === 'res' && (l.from || l.to) ? '<span class="fchg">' + (l.from ? vtag(l.from, true) + '<span class="fto">→</span>' : '') + vtag(l.to) + '</span>' : '';
       return head + `<li class="fi ${k}"><span class="ft">${hm(l.t)}</span><span class="fa" aria-hidden="true">${esc(nm.replace(/^[เแโใไ]/, '').charAt(0))}</span>`
         + `<div class="fm"><span class="fn">${esc(nm)}</span><span class="fk ${k}">${esc(l.what)}</span>${code}${chg}`
-        + (l.note ? `<span class="fx">${esc(l.note)}</span>` : '') + '</div></li>';
+        + (same ? '<span class="fx same">ข้อความเดียวกับรายการด้านบน</span>' : l.note ? noteHtml(l.note) : '') + '</div></li>';
     }).join('') + '</ol>'
       : '<span class="muted">ยังไม่มีกิจกรรม</span>';
   }
