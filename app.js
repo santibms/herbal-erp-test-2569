@@ -866,8 +866,23 @@
         return `<td><span class="ms done">ทำแล้ว ${mine.length}/${mcases.length}</span><span class="ms pass">ผ่าน ${k('pass')}</span>`
           + `<span class="ms fail">ไม่ผ่าน ${k('fail')}</span><span class="ms block">ติดปัญหา ${k('block')}</span><span class="ms todo">ยังไม่ทำ ${mcases.length - mine.length}</span></td>`;
       }).join('') + '</tr></tfoot></table>' : '';
-    $('dLog').innerHTML = d.log.length ? `<table><thead><tr><th class="n">ลำดับ</th><th>เวลา</th><th>ผู้ใช้</th><th>รายการ</th><th>ข้อ</th><th>ผล</th><th>ข้อความ</th></tr></thead><tbody>`
-      + d.log.map((l, li) => `<tr><td class="n">${li + 1}</td><td>${fmtDT(l.t)}</td><td>${esc(l.full || l.user)}</td><td>${esc(l.what)}</td><td>${esc(l.code)}</td><td>${l.from || l.to ? esc(l.from || '-') + ' → ' + esc(l.to || '-') : ''}</td><td>${esc(l.note)}</td></tr>`).join('') + '</tbody></table>'
+    // กิจกรรมล่าสุด: แยกตามวัน แต่ละรายการ = เวลา · ชื่อ · ป้ายรายการ · ข้อ (กดเปิดข้อนั้น) · ผลเดิม → ผลใหม่ แล้วข้อความอยู่บรรทัดล่าง
+    const dKey = t => new Date(t).toDateString(), today = dKey(Date.now()), yday = dKey(Date.now() - 864e5);
+    const dayName = t => (dKey(t) === today ? 'วันนี้ · ' : dKey(t) === yday ? 'เมื่อวาน · ' : '') + new Date(t).toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const hm = t => new Date(t).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+    const kind = w => /ผล/.test(w) ? 'res' : /ภาพ/.test(w) ? 'img' : /เข้าระบบ|สมัคร/.test(w) ? 'in' : 'adm';
+    // ประวัติเก็บผลเป็นคำไทย (ผ่าน / ไม่ผ่าน / ติดปัญหา) จึงหาสีจากคำนั้น
+    const vtag = (v, old) => { const c = SHORT[v] ? v : Object.keys(SHORT).find(x => SHORT[x] === v) || ''; return `<span class="lv ${c}${old ? ' old' : ''}">${esc(SHORT[c] || v)}</span>`; };
+    let lday = '';
+    $('dLog').innerHTML = d.log.length ? '<ol class="feed">' + d.log.map(l => {
+      const k = kind(l.what), nm = l.full || l.user || '', day = dKey(l.t), head = day !== lday ? `<li class="fday">${dayName(l.t)}</li>` : '';
+      lday = day;
+      const code = l.code ? (idxOf(l.code) >= 0 ? `<button class="fc" data-go="${esc(l.code)}" title="เปิดข้อ ${esc(l.code)}">${esc(l.code)}</button>` : `<b class="fc">${esc(l.code)}</b>`) : '';
+      const chg = k === 'res' && (l.from || l.to) ? '<span class="fchg">' + (l.from ? vtag(l.from, true) + '<span class="fto">→</span>' : '') + vtag(l.to) + '</span>' : '';
+      return head + `<li class="fi ${k}"><span class="ft">${hm(l.t)}</span><span class="fa" aria-hidden="true">${esc(nm.replace(/^[เแโใไ]/, '').charAt(0))}</span>`
+        + `<div class="fm"><span class="fn">${esc(nm)}</span><span class="fk ${k}">${esc(l.what)}</span>${code}${chg}`
+        + (l.note ? `<span class="fx">${esc(l.note)}</span>` : '') + '</div></li>';
+    }).join('') + '</ol>'
       : '<span class="muted">ยังไม่มีกิจกรรม</span>';
   }
   $('dashBtn').onclick = () => ($('dash').hidden ? showDash() : hideDash());
@@ -931,6 +946,7 @@
   $('dIssueSt').onchange = () => { if (dash) renderDash(); };
   // คำชี้แจงของผู้ดูแลต่อข้อที่ไม่ผ่าน/ติดปัญหา (ผู้ทดสอบอาจไม่ทราบวิธีดูข้อมูลที่ถูกต้อง)
   let ansEdit = null, ansDraft = '', ansDraftSt = '';
+  $('dLog').onclick = e => { const b = e.target.closest('[data-go]'); if (b) { hideDash(); goTo(b.dataset.go); } };
   $('dIssues').onclick = async e => {
     const b = e.target.closest('button');
     if (!b || !dash) return;
