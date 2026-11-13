@@ -203,6 +203,13 @@
   .dv { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
   .dv select, .dv input { border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 16px; background: #fff; }
   .dv input { width: 150px; }
+  /* วันที่ทดสอบ: ปุ่มแสดงวันไทย กดแล้วเปิดปฏิทินของเบราว์เซอร์ (ช่อง date ซ่อนอยู่ใต้ปุ่ม ปฏิทินจึงเปิดตรงปุ่ม) */
+  .dpick { position: relative; display: inline-flex; }
+  .daybtn { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; font: inherit; font-size: 16px; font-weight: 600; color: var(--ink); background: #fff; cursor: pointer; }
+  .daybtn:hover { border-color: var(--brand); background: var(--hover); }
+  .daybtn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--ring); border-color: var(--brand); }
+  .daybtn svg { color: var(--brand); flex: none; }
+  .dv .dpick input[type=date] { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; opacity: 0; pointer-events: none; }
   .saved { font-size: 14px; color: var(--muted); margin-top: 6px; min-height: 1.5em; }
   .saved.ok { color: var(--pass); } .saved.wait { color: #9a5b00; } .saved.err { color: var(--fail); }
   .pager { max-width: 880px; display: flex; justify-content: space-between; gap: 10px; margin: 16px 0 40px; }
@@ -346,7 +353,7 @@
   @media (max-width: 560px) { .prog, .menu-btn .mt, .brand .brand-txt { display: none; } }
   @media (pointer: coarse) {
     .ck .box { width: 28px; height: 28px; } .ck { padding: 8px 0; }
-    .att { padding: 10px 0; } .dv select, .dv input { padding: 10px 12px; }
+    .att { padding: 10px 0; } .dv select, .dv input { padding: 10px 12px; } .daybtn { padding: 10px 12px; }
   }
   @media (max-width: 760px) {
     .bar .in { padding: 8px 12px; gap: 8px; }
@@ -556,7 +563,7 @@
 <div id="print-area"></div>
 
 <script src="config.js"></script>
-<script src="cases.js?v=948a993bec23"></script>
-<script src="app.js?v=948a993bec23"></script>
+<script src="cases.js?v=c9ffdbbc3eec"></script>
+<script src="app.js?v=c9ffdbbc3eec"></script>
 </body>
 </html>

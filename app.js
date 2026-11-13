@@ -19,6 +19,11 @@
   const roundLabel = r => String(r).replace(/ \d{4}$/, '');
   const inRound = (c, r) => (c.slot || '').indexOf(r) >= 0;
   const TH_M = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+  // วันที่ทดสอบเก็บเป็นข้อความไทย '13 พ.ย. 2569' (แดชบอร์ด/หน้าพิมพ์/ชีตอ่านแบบนี้) — ช่องปฏิทินใช้ค่า 2026-11-13
+  const pad2 = n => String(n).padStart(2, '0');
+  const thToIso = s => { const m = /^(\d{1,2})\s+(\S+)\s+(\d{4})$/.exec(String(s || '').trim()), mi = m ? TH_M.indexOf(m[2]) : -1; return mi < 0 ? '' : (Number(m[3]) - 543) + '-' + pad2(mi + 1) + '-' + pad2(m[1]); };
+  const isoToTh = v => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || ''); return m ? Number(m[3]) + ' ' + TH_M[Number(m[2]) - 1] + ' ' + (Number(m[1]) + 543) : ''; };
+  const todayIso = () => { const d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); };
   // คำอธิบายประเภทโจทย์ และเกณฑ์ตัดสินผล
   const TYPE_INFO = {
     Positive: { what: 'ใช้งานปกติ ระบบต้องทำได้และให้ผลตามที่คาดหวัง',
@@ -33,6 +38,7 @@
   };
   const BLOCK_INFO = 'ทดสอบต่อไม่ได้ด้วยเหตุอื่นที่ไม่ใช่ผลของข้อนี้ เช่น ไม่มีข้อมูลตั้งต้น ระบบเข้าไม่ได้ หรือข้อก่อนหน้ายังไม่ผ่าน';
   const ICON = {
+    cal: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M16 2.5v4M8 2.5v4M3 10h18"/></svg>',
     check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
     clip: '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m21 11-8.5 8.5a5 5 0 0 1-7-7L14 4a3.3 3.3 0 0 1 4.7 4.7L10.2 17a1.7 1.7 0 0 1-2.4-2.4L15 7.5"/></svg>',
     book: '<svg class="ic" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>',
@@ -169,14 +175,8 @@
     LIST.forEach(c => { n[(state.res[c.code] || {}).v || 'todo']++; });
     return n;
   }
-  // วันที่ทดสอบเริ่มต้น: วันนี้ (ถ้าเป็นวันทดสอบ) > วันในช่วงเวลาของข้อ > วันทดสอบวันแรก
-  function defaultDay(c) {
-    const d = new Date(), today = d.getDate() + ' ' + TH_M[d.getMonth()] + ' ' + (d.getFullYear() + 543);
-    if (DAYS.indexOf(today) >= 0) return today;
-    const m = /(\d{1,2})(?:\s*[–-]\s*\d{1,2})?\s+(\S+)\s+(\d{4})/.exec((c && c.slot) || '');   // วันแรกในช่วงเวลาของข้อ
-    const first = m ? m[1] + ' ' + m[2] + ' ' + m[3] : '';
-    return DAYS.indexOf(first) >= 0 ? first : DAYS[0];
-  }
+  // วันที่ทดสอบเริ่มต้น = วันนี้ — ผู้ทดสอบเปลี่ยนเองได้จากปฏิทิน (13 พ.ย. 2569 ผู้ใช้สั่ง: เดิมเลือกได้แค่วันในรายการ วันนี้จึงไม่มีให้เลือก)
+  function defaultDay() { return isoToTh(todayIso()); }
   // รุ่นปัจจุบัน = รุ่นที่ใหม่กว่าระหว่างค่าที่ผู้ดูแลตั้ง กับรุ่นที่ระบบ Herbal ERP ที่ทดสอบอยู่แสดง (DATA.erpVer อัปเดตทุกครั้งที่ขึ้นระบบ)
   const verNum = v => (String(v || '').match(/\d+/g) || []).map(Number);
   const newerVer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0) ? a : b; } return a || b; };
@@ -507,7 +507,7 @@
           ${row('ภาพหน้าจอประกอบ', `<label class="att">${ICON.clip} แนบภาพ<input type="file" accept="image/*" id="file"></label>
             <span class="hint">· ถ้าใช้คอมพิวเตอร์ กด Print Screen แล้วกด Ctrl+V ในหน้านี้ได้เลย</span><div class="atts" id="atts"></div>`)}
           ${row('ผู้ทดสอบ', 'ลงชื่อ ' + esc(session.user.full))}
-          ${row('วันที่ทดสอบ / รุ่นโปรแกรม', `<div class="dv">${MULTI_DATE ? `<select id="day" aria-label="วันที่ทดสอบ">${DAYS.map(d => `<option ${d === day ? 'selected' : ''}>${d}</option>`).join('')}</select>` : `<span class="dayfix">${esc(day)}</span>`}
+          ${row('วันที่ทดสอบ / รุ่นโปรแกรม', `<div class="dv"><span class="dpick"><button type="button" class="daybtn" id="dayBtn" aria-label="วันที่ทดสอบ ${esc(day)} — กดเพื่อเลือกจากปฏิทิน" title="กดเพื่อเลือกวันที่จากปฏิทิน">${ICON.cal}<span id="dayTxt">${esc(day)}</span></button><input type="date" id="day" value="${thToIso(day)}" max="${todayIso()}" tabindex="-1" aria-hidden="true"></span>
             <input id="ver" value="${esc(ver)}" placeholder="เช่น ${esc(curVerOf() || 'v1.6.84')}" aria-label="รุ่นโปรแกรม ${PRODUCT}"></div>
             <div class="hint">บันทึกแยกทุกข้อ ค่าเริ่มต้นคือรุ่นที่ระบบที่ทดสอบใช้อยู่ตอนนี้ ถ้าหน้าจอ ${PRODUCT} แสดงรุ่นอื่น (มุมซ้ายล่าง) ให้แก้ตามหน้าจอ</div>`)}
         </tbody></table>
@@ -531,7 +531,17 @@
       clearTimeout(noteTimer); noteTimer = setTimeout(() => { noteTimer = 0; queueSave(c.code); }, 3000);
     };
     $('note').onblur = () => { if (noteTimer) { clearTimeout(noteTimer); noteTimer = 0; const rr = state.res[c.code]; if (rr && !pending(c.code) && rr._dirty) queueSave(c.code); } };
-    if ($('day')) $('day').onchange = e => { res(c.code).day = e.target.value; queueSave(c.code); };
+    if ($('day')) {
+      const inp = $('day');
+      $('dayBtn').onclick = () => { try { inp.showPicker(); } catch (e) { inp.style.pointerEvents = 'auto'; inp.focus(); inp.click(); } };
+      inp.onchange = e => {
+        const th = isoToTh(e.target.value);
+        if (!th) { e.target.value = thToIso($('dayTxt').textContent); return; }   // กดล้างค่าในปฏิทิน: คงวันเดิม
+        res(c.code).day = th; $('dayTxt').textContent = th;
+        $('dayBtn').setAttribute('aria-label', 'วันที่ทดสอบ ' + th + ' — กดเพื่อเลือกจากปฏิทิน');
+        queueSave(c.code);
+      };
+    }
     if ($('retestBtn')) $('retestBtn').onclick = () => retestCase(c.code);
     if ($('dset')) $('dset').onchange = e => { res(c.code).dset = e.target.value; stamp(c.code); queueSave(c.code); };
     $('ver').onchange = e => { res(c.code).ver = e.target.value.trim(); queueSave(c.code); };
@@ -540,7 +550,7 @@
   // ข้อที่เริ่มบันทึก: เก็บวันที่และรุ่นโปรแกรม ณ ตอนที่ทดสอบ
   function stamp(code) {
     const rr = res(code), c = LIST[idxOf(code)];
-    if (!rr.day) rr.day = $('day') ? $('day').value : defaultDay(c);
+    if (!rr.day) rr.day = ($('day') && isoToTh($('day').value)) || defaultDay(c);
     if (!rr.ver) rr.ver = ($('ver') && $('ver').value.trim()) || curVerOf(c) || '';
     rr._dirty = true;
   }
